@@ -6,13 +6,13 @@ namespace mmc {
     using Vec2 = Vector2;
     //  路径生成
     public class PathBuild {
-        class Pile {
+        public class Pile {
             public Area  mArea;     //  所属区域
             public Vec2  mOrigin;   //  原点
             public float mRadius;   //  半径
         }
 
-        class Area {
+        public class Area {
             public Math.Polygon mVerts;     //  顶点集
             public List<Pile> mPiles;       //  桩集
             public List<Mesh> mMeshs;       //  网格
@@ -20,17 +20,22 @@ namespace mmc {
             public Area mNext;  //  下级
         }
 
-        class Edge {
+        public class Edge {
             public Vec2 mA;                 //  起点
             public Vec2 mB;                 //  终点
             public Area mLink;              //  链接区域
             public Area mSelf;              //  自己区域
         }
 
-        class Mesh {
+        public class Mesh {
             public Vec2         mOrigin;    //  中点
             public Math.Polygon mVerts;     //  点集
             public List<Edge>   mEdges;     //  边集
+        }
+
+        public Area Root()
+        {
+            return mRoot;
         }
 
         public void Init(Math.Polygon points)
@@ -40,6 +45,14 @@ namespace mmc {
                 mPiles = new List<Pile>(),
                 mMeshs = new List<Mesh>(),
             };
+            foreach (var point in points.Ps)
+            {
+                mRoot.mPiles.Add(new Pile {
+                    mArea = mRoot,
+                    mOrigin = point,
+                    mRadius = 0.00f,
+                });
+            }
         }
 
         public void Insert(Vec2 p, float r)
@@ -57,15 +70,26 @@ namespace mmc {
         void Insert(Area area, Pile pile)
         {
             List<Pile> piles = new List<Pile>();
-            Clear(area, piles); piles.Add(pile);
 
-            var prev = area.mPrev;
+            //  构造桩集
+            while (area.mPiles.Count != area.mVerts.Count)
+            {
+                var i=area.mPiles.Count-1;
+                piles.Add(area.mPiles[i]);
+                area.mPiles.RemoveAt(i);
+            }
+            piles.Add(pile);
+
+            //  清空子项
+            Clear(area.mNext, piles);
+            area.mNext = null;
+
             var list = new List<Pile>();
             while (piles.Count != 0)
             {
                 list.Clear();
                 InitPiles(piles, list);
-                LinkPiles(piles, list, ref prev);
+                LinkPiles(piles, list, ref area);
             }
         }
 
@@ -100,7 +124,53 @@ namespace mmc {
 
         void FillMesh(Area area, Pile p0, Pile p1)
         {
+            var offset = Math.CalcFirstIndex(area.mVerts.Ps,
+                                             p0.mOrigin,
+                                             p1.mOrigin);
+            var lMesh = new Mesh();
+            var rMesh = new Mesh();
+            var tMesh = new Mesh();
+            var bMesh = new Mesh();
+            lMesh.mVerts.Ps = new List<Vec2>();
+            rMesh.mVerts.Ps = new List<Vec2>();
+            tMesh.mVerts.Ps = new List<Vec2>();
+            bMesh.mVerts.Ps = new List<Vec2>();
+            var p0p1 = p1.mOrigin - p0.mOrigin;
+            for (var i = 0; i != area.mVerts.Count; ++i)
+            {
+                var index = (offset + i) % area.mVerts.Count;
+                var point = area.mVerts[index] - p0.mOrigin;
+                var cross = Math.V2Cross(p0p1, point);
+                if (cross < 0)
+                {
+                    lMesh.mVerts.Ps.Add(point);
+                }
+                else
+                {
+                    rMesh.mVerts.Ps.Add(point);
+                }
+            }
+            lMesh.mVerts.Ps.Add(p0.mOrigin);
+            lMesh.mVerts.Ps.Add(p1.mOrigin);
+            rMesh.mVerts.Ps.Add(p1.mOrigin);
+            rMesh.mVerts.Ps.Add(p0.mOrigin);
 
+            tMesh.mVerts.Ps.Add(p0.mOrigin);
+            bMesh.mVerts.Ps.Add(p0.mOrigin);
+            tMesh.mVerts.Ps.Add(rMesh.mVerts.Ps[rMesh.mVerts.Ps.Count - 3]);
+            bMesh.mVerts.Ps.Add(lMesh.mVerts.Ps[lMesh.mVerts.Ps.Count - 3]);
+            tMesh.mVerts.Ps.Add(lMesh.mVerts.Ps[0]);
+            bMesh.mVerts.Ps.Add(rMesh.mVerts.Ps[0]);
+
+            lMesh.mOrigin = Math.CalcCenterCoord(lMesh.mVerts);
+            rMesh.mOrigin = Math.CalcCenterCoord(rMesh.mVerts);
+            tMesh.mOrigin = Math.CalcCenterCoord(tMesh.mVerts);
+            bMesh.mOrigin = Math.CalcCenterCoord(bMesh.mVerts);
+
+            area.mMeshs.Add(lMesh);
+            area.mMeshs.Add(rMesh);
+            area.mMeshs.Add(tMesh);
+            area.mMeshs.Add(bMesh);
         }
 
         void LinkPiles(List<Pile> listNo, List<Pile> listOk, ref Area prev)
@@ -139,18 +209,31 @@ namespace mmc {
 
         void InitPiles(List<Pile> piles, List<Pile> list)
         {
+            //  极坐标原点
+            var o = 0;
+            for (var i = 1; i != piles.Count; ++i)
+            {
+                if (piles[i].mOrigin.y < piles[o].mOrigin.y) { o = i; }
+            }
+
+            //  极坐标排序
+            var point = piles[o];
             piles.Sort((a, b) => {
-                if (a.mOrigin.y < b.mOrigin.y) { return -1; }
-                if (b.mOrigin.y < a.mOrigin.y) { return  1; }
-                if (a.mOrigin.x < b.mOrigin.x) { return -1; }
-                if (b.mOrigin.x < a.mOrigin.x) { return  1; }
+                var ap = a.mOrigin - point.mOrigin;
+                var bp = b.mOrigin - point.mOrigin;
+                var a0 = Mathf.Atan2(ap.y, ap.x);
+                var a1 = Mathf.Atan2(ap.y, ap.x);
+                if (a0 < a1) { return -1; }
+                if (a0 > a1) { return  1; }
+                if (a0 == a1)
+                {
+                    if (ap.x > bp.x) { return -1; }
+                    if (ap.x < bp.x) { return  1; }
+                }
                 return 0;
             });
 
-            list = new List<Pile>() {
-                piles[0],
-                piles[1] 
-            };
+            list = new List<Pile>() { piles[0], piles[1] };
             for (var i = 1; i != piles.Count; ++i)
             {
                 var p = piles[i];
@@ -170,12 +253,12 @@ namespace mmc {
 
         void Clear(Area area, List<Pile> piles)
         {
-            piles.AddRange(area.mPiles);
-            area.mMeshs.Clear();
-            area.mPiles.Clear();
-            area.mVerts.Ps.Clear();
-            if (area.mNext != null)
+            if (area != null)
             {
+                piles.AddRange(area.mPiles);
+                //area.mMeshs.Clear();
+                //area.mPiles.Clear();
+                //area.mVerts.Ps.Clear();
                 Clear(area.mNext, piles);
             }
         }

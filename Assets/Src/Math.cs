@@ -346,6 +346,21 @@ namespace mmc {
             return sum / polygon.Count;
         }
 
+        //  计算起点
+        //  根据p0, p1给定的方向, 返回合适的起点索引
+        public static int CalcFirstIndex(List<Vector2> list, Vector2 p0, Vector2 p1)
+        {
+            var p0p1  = p1 - p0;
+            var index = 0;
+            var cross = V2Cross(p0p1, list[index] - p0);
+            for (index = 1; index != list.Count; ++index)
+            {
+                var c = V2Cross(p0p1, list[index] - p0);
+                if (c * cross < 0) { break; }
+            }
+            return index % list.Count;
+        }
+
         //  计算多边形顺序
         public static float CalePointsOrder(List<Vector2> points)
         {
