@@ -114,7 +114,7 @@ namespace mmc {
                     var k = (j + 1) % area.mVerts.Count;
                     var cd = p.mOrigin - area.mVerts[k];
                     if (0 > Math.V2Cross(cd, ab)) break;
-                    mesh.mVerts.Ps.Add(area.mVerts[k]);
+                    mesh.mVerts.Ps.Add(area.mVerts[k]); 
                 }
 
                 mesh.mOrigin = Math.CalcCenterCoord(mesh.mVerts);
