@@ -44,28 +44,6 @@ namespace mmc {
             }
         }
 
-        public struct Polygon {
-            public List<Vector2> Ps;
-
-            public int Count { get => Ps.Count; }
-
-            public Vector2 this[int index]
-            {
-                get => Ps[index];
-                set => Ps[index] = value;
-            }
-
-            public bool IsVaild()
-            {
-                return Ps.Count >= 3;
-            }
-
-            public Polygon(List<Vector2> ps)
-            {
-                Ps = ps;
-            }
-        }
-
         public struct Triangle {
             public Vector2 P0;
             public Vector2 P1;
@@ -316,21 +294,34 @@ namespace mmc {
         }
 
         //  凸包 点
-        public static bool IsContainsConvex(Polygon polygon, Vector2 p)
+        public static bool IsContainsConvex(List<Vector2> list, Vector2 p)
         {
-            for (var i = 0; i != polygon.Count; ++i)
+            for (var i = 0; i != list.Count; ++i)
             {
-                var j = IndexNext(i, 1, polygon.Count);
-                var k = IndexNext(i, 2, polygon.Count);
-                var a = polygon[i];
-                var b = polygon[j];
-                var c = polygon[k];
+                var j = IndexNext(i, 1, list.Count);
+                var k = IndexNext(i, 2, list.Count);
+                var a = list[i];
+                var b = list[j];
+                var c = list[k];
                 var cross0 = V2Cross(b - a, c - b);
                 var cross1 = V2Cross(b - a, p - a);
-                if (cross0 * cross1 < 0)
-                {
-                    return false;
-                }
+                if (cross0 * cross1 < 0) return false;
+            }
+            return true;
+        }
+
+        public static bool IsContainsConvex<T>(List<T> list, Vector2 p, System.Func<T, Vector2> func)
+        {
+            for (var i = 0; i != list.Count; ++i)
+            {
+                var j = IndexNext(i, 1, list.Count);
+                var k = IndexNext(i, 2, list.Count);
+                var a = func(list[i]);
+                var b = func(list[j]);
+                var c = func(list[k]);
+                var cross0 = V2Cross(b - a, c - b);
+                var cross1 = V2Cross(b - a, p - a);
+                if (cross0 * cross1 < 0) return false;
             }
             return true;
         }
@@ -384,15 +375,26 @@ namespace mmc {
         }
 
         //  计算中点
-        public static Vector2 CalcCenterCoord(Polygon polygon)
+        public static Vector2 CalcCenterCoord(List<Vector2> list)
         {
             var sum = Vector2.zero;
-            for (var i = 0; i != polygon.Count; ++i)
+            for (var i = 0; i != list.Count; ++i)
             {
-                sum += polygon[i];
+                sum += list[i];
             }
-            return sum / polygon.Count;
+            return sum / list.Count;
         }
+
+        public static Vector2 CalcCenterCoord<T>(List<T> list, System.Func<T, Vector2> func)
+        {
+            var sum = Vector2.zero;
+            for (var i = 0; i != list.Count; ++i)
+            {
+                sum += func(list[i]);
+            }
+            return sum / list.Count;
+        }
+
 
         //  计算起点
         //  根据p0, p1给定的方向, 返回合适的起点索引

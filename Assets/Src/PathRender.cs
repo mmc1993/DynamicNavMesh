@@ -18,8 +18,7 @@ namespace mmc {
 
         public void OnRefresh()
         {
-            Math.Polygon poly;
-            poly.Ps = new List<Vector2>{
+            List<Vector2> poly = new List<Vector2>{
                 new Vector2(-5, -5),
                 new Vector2( 5, -5),
                 new Vector2( 5,  5),
@@ -45,21 +44,13 @@ namespace mmc {
                 }
             }
             
-            Queue<PathBuild.Area> queue = 
-                new Queue<PathBuild.Area>();
-            queue.Enqueue(mPathBuild.Root());
-            while (queue.Count != 0)
+            foreach (var mesh in mPathBuild.GetMeshs())
             {
-                var front = queue.Dequeue();
-                DrawPoints(front.mVerts.Ps);
-                foreach (var mesh in front.mMeshs)
-                {
-                    DrawPoints(mesh.mVerts.Ps);
-                }
+                DrawPoints(mesh.mPiles);
             }
         }
 
-        void DrawPoints(List<Vector2> list)
+        void DrawPoints(List<PathBuild.Pile> list)
         {
             var temp = Instantiate(mLine.gameObject,
                             mLine.transform.parent);
@@ -68,9 +59,9 @@ namespace mmc {
             for (var i = 0; i != list.Count; ++i)
             {
                 Vector3 p;
-                p.x = list[i].x;
+                p.x = list[i].mOrigin.x;
                 p.y = 0.1f;
-                p.z = list[i].y;
+                p.z = list[i].mOrigin.y;
                 line.SetPosition(i, p);
             }
             temp.SetActive(true);

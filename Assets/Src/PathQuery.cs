@@ -7,244 +7,169 @@ namespace mmc {
     //  路径生成
     public class PathBuild {
         public class Pile {
-            public Area  mArea;     //  所属区域
             public Vec2  mOrigin;   //  原点
             public float mRadius;   //  半径
-        }
 
-        public class Area {
-            public Math.Polygon mVerts;     //  顶点集
-            public List<Pile> mPiles;       //  桩集
-            public List<Mesh> mMeshs;       //  网格
-            public Area mPrev;  //  上级
-            public Area mNext;  //  下级
+            public static implicit operator Vec2(Pile val) => val.mOrigin;
         }
 
         public class Edge {
-            public Vec2 mA;                 //  起点
-            public Vec2 mB;                 //  终点
-            public Area mLink;              //  链接区域
-            public Area mSelf;              //  自己区域
+            public Pile mA;                 //  起点
+            public Pile mB;                 //  终点
+            public Mesh mSelf;              //  自己区域
+            public Edge mLink;
+
+            public override bool Equals(object obj)
+            {
+                var other = obj as Edge;
+                Math.Edge e0, e1;
+                e0.P0 = mA.mOrigin;
+                e0.P1 = mB.mOrigin;
+                e1.P0 = other.mA.mOrigin;
+                e1.P1 = other.mB.mOrigin;
+                return e0.Equals(e1);
+            }
+
+            public override int GetHashCode()
+            {
+                return base.GetHashCode();
+            }
         }
 
         public class Mesh {
-            public Vec2         mOrigin;    //  中点
-            public Math.Polygon mVerts;     //  点集
-            public List<Edge>   mEdges;     //  边集
+            public Vec2 mOrigin;        //  中点
+            public List<Pile> mPiles;   //  点集
+            public List<Edge> mEdges;   //  边集
         }
 
-        public Area Root()
+        public List<Mesh> GetMeshs()
         {
-            return mRoot;
+            return mMeshs;
         }
 
-        public void Init(Math.Polygon points)
+        public void Init(List<Vec2> points)
         {
-            mRoot = new Area {
-                mVerts = points,
+            mMeshs.Clear();
+
+            var mesh = new Mesh {
                 mPiles = new List<Pile>(),
-                mMeshs = new List<Mesh>(),
+                mEdges = new List<Edge>(),
             };
-            foreach (var point in points.Ps)
+            mMeshs.Add(mesh);
+
+            foreach (var p in points)
             {
-                mRoot.mPiles.Add(new Pile {
-                    mArea = mRoot,
-                    mOrigin = point,
-                    mRadius = 0.00f,
-                });
+                var pile = new Pile { mOrigin = p, mRadius = 1, };
+
+                if (mesh.mEdges.Count != 0)
+                {
+                    mesh.mEdges[mesh.mEdges.Count - 1].mB  = pile;
+                }
+
+                mesh.mEdges.Add(new Edge { mA = pile, mSelf = mesh });
+
+                mesh.mPiles.Add(pile);
             }
+
+            mesh.mEdges[mesh.mEdges.Count - 1].mB = mesh.mPiles[0];
         }
 
         public void Insert(Vec2 p, float r)
         {
-            var area = FindArea(mRoot, p);
+            var meshs = FindArea(p);
 
-            var point = new Pile {
-                mOrigin = p,
-                mRadius = r,
-            };
+            mEdges.Clear();
+            for (var i = 0; i != meshs.Count; ++i)
+            {
+                var mesh = meshs[i];
+                mMeshs.Remove(mesh);
+                mEdges.AddRange(mesh.mEdges);
+            }
 
-            Insert(area, point);
+            Insert(meshs, new Pile { mOrigin = p, mRadius = r, });
         }
 
-        void Insert(Area area, Pile pile)
+        void Insert(List<Mesh> meshs, Pile pile)
         {
-            List<Pile> piles = new List<Pile>();
-
-            //  构造桩集
-            while (area.mPiles.Count != area.mVerts.Count)
+            if      (meshs.Count == 1)
             {
-                var i=area.mPiles.Count-1;
-                piles.Add(area.mPiles[i]);
-                area.mPiles.RemoveAt(i);
+                Insert(meshs[0], pile);
             }
-            piles.Add(pile);
-
-            //  清空子项
-            Clear(area.mNext, piles);
-            area.mMeshs.Clear();
-            area.mNext = null;
-
-            var list = new List<Pile>();
-            while (piles.Count != 0)
+            else if (meshs.Count > 1)
             {
-                list.Clear();
-                InitPiles(piles, list);
-                LinkPiles(piles, list, ref area);
+                meshs.ForEach(v => Insert(v, pile));
             }
         }
 
-        void FillMesh(Area area, Area prev)
+        void Insert(Mesh mesh, Pile p)
         {
-
-        }
-
-        void FillMesh(Area area, Pile p)
-        {
-            for (var i = 0; i != area.mVerts.Count;)
+            for (var i = 0; i != mesh.mPiles.Count;)
             {
-                var mesh = new Mesh();
-                mesh.mVerts.Ps = new List<Vec2> {
-                    p.mOrigin, area.mVerts[i],
+                var val = new Mesh {
+                    mPiles = new List<Pile>(),
+                    mEdges = new List<Edge>(),
                 };
 
-                var ab = mesh.mVerts.Ps[1] - mesh.mVerts.Ps[0];
-                for (var j = i; j != area.mVerts.Count;++j,++i)
+                //  第一条边
+                val.mEdges.Add(new Edge {
+                    mA = p, mB = mesh.mPiles[i], mSelf = val,
+                });
+                val.mPiles.Add(val.mEdges[0].mA);
+                val.mPiles.Add(val.mEdges[0].mB);
+
+                //  中间边
+                var ab = val.mPiles[1].mOrigin - val.mPiles[0].mOrigin;
+                for (var j = i; j != mesh.mPiles.Count; ++j, ++i)
                 {
-                    var k = (j + 1) % area.mVerts.Count;
-                    var cd = p.mOrigin - area.mVerts[k];
+                    var k = (j + 1) % mesh.mPiles.Count;
+                    var cd = p - mesh.mPiles[k].mOrigin;
                     if (0 > Math.V2Cross(cd, ab)) break;
-                    mesh.mVerts.Ps.Add(area.mVerts[k]); 
+                    
+                    val.mPiles.Add(mesh.mPiles[k]);
+                    val.mEdges.Add(new Edge {
+                        mA = val.mPiles[val.mPiles.Count - 2],
+                        mB = val.mPiles[val.mPiles.Count - 1],
+                        mSelf = val,
+                    });
                 }
 
-                mesh.mOrigin = Math.CalcCenterCoord(mesh.mVerts);
+                //  最后一条边
+                val.mEdges.Add(new Edge {
+                    mA = val.mPiles[val.mPiles.Count - 1],
+                    mB = val.mPiles[0],
+                    mSelf = val,
+                });
 
-                area.mMeshs.Add(mesh);
+                //  计算中点
+                val.mOrigin = Math.CalcCenterCoord(val.mPiles, v => v);
+
+                //  连接边
+                LinkMesh(val);
             }
-            area.mPiles.Add(p);
         }
 
-        void FillMesh(Area area, Pile p0, Pile p1)
+        void LinkMesh(Mesh mesh)
         {
-            var offset = Math.CalcFirstIndex(area.mVerts.Ps,
-                                             p0.mOrigin,
-                                             p1.mOrigin);
-            var lMesh = new Mesh();
-            var rMesh = new Mesh();
-            var tMesh = new Mesh();
-            var bMesh = new Mesh();
-            lMesh.mVerts.Ps = new List<Vec2>();
-            rMesh.mVerts.Ps = new List<Vec2>();
-            tMesh.mVerts.Ps = new List<Vec2>();
-            bMesh.mVerts.Ps = new List<Vec2>();
-            var p0p1 = p1.mOrigin - p0.mOrigin;
-            for (var i = 0; i != area.mVerts.Count; ++i)
+            foreach (var edge in mesh.mEdges)
             {
-                var index = (offset + i) % area.mVerts.Count;
-                var point = area.mVerts[index] - p0.mOrigin;
-                var cross = Math.V2Cross(p0p1, point);
-                if (cross >= 0)
+                var link = mEdges.Find(v => edge.Equals(v));
+                if (link != null)
                 {
-                    lMesh.mVerts.Ps.Add(point);
+                    edge.mLink = link;
+                    link.mLink = edge;
                 }
-                else
-                {
-                    rMesh.mVerts.Ps.Add(point);
-                }
+                mEdges.Add(edge);
             }
-            lMesh.mVerts.Ps.Add(p0.mOrigin); lMesh.mVerts.Ps.Add(p1.mOrigin);
-            rMesh.mVerts.Ps.Add(p1.mOrigin); rMesh.mVerts.Ps.Add(p0.mOrigin);
-
-            tMesh.mVerts.Ps.Add(p1.mOrigin);
-            bMesh.mVerts.Ps.Add(p0.mOrigin);
-            tMesh.mVerts.Ps.Add(rMesh.mVerts.Ps[rMesh.mVerts.Ps.Count - 3]);
-            bMesh.mVerts.Ps.Add(lMesh.mVerts.Ps[lMesh.mVerts.Ps.Count - 3]);
-            tMesh.mVerts.Ps.Add(lMesh.mVerts.Ps[0]);
-            bMesh.mVerts.Ps.Add(rMesh.mVerts.Ps[0]);
-
-            lMesh.mOrigin = Math.CalcCenterCoord(lMesh.mVerts);
-            rMesh.mOrigin = Math.CalcCenterCoord(rMesh.mVerts);
-            tMesh.mOrigin = Math.CalcCenterCoord(tMesh.mVerts);
-            bMesh.mOrigin = Math.CalcCenterCoord(bMesh.mVerts);
-
-            area.mMeshs.Add(lMesh);
-            area.mMeshs.Add(rMesh);
-            area.mMeshs.Add(tMesh);
-            area.mMeshs.Add(bMesh);
+            mMeshs.Add(mesh);
         }
 
-        void LinkPiles(List<Pile> listNo, List<Pile> listOk, ref Area prev)
+        List<Mesh> FindArea(Vec2 point)
         {
-            if (listOk.Count != 0)
-            {
-                var area = new Area {
-                    mPrev  = prev,
-                    mPiles = listOk,
-                };
-
-                //  填充轮廓
-                area.mVerts.Ps = new List<Vec2>();
-                listOk.ForEach(v => area.mVerts.Ps.Add(v.mOrigin));
-
-                //  衔接网格
-                area.mMeshs = new List<Mesh>();
-                FillMesh(area, prev);
-
-                prev.mNext = area;
-                prev = prev.mNext;
-            }
-
-            //  填充剩余顶点
-            if      (listNo.Count == 1)
-            {
-                FillMesh(prev, listNo[0]);
-                listNo.Clear();
-            }
-            else if (listNo.Count == 2)
-            {
-                FillMesh(prev, listNo[0], listNo[1]);
-                listNo.Clear();
-            }
+            return mMeshs.FindAll(mesh => Math.IsContainsConvex(mesh.mPiles, point, v => v.mOrigin));
         }
 
-        void InitPiles(List<Pile> piles, List<Pile> list)
-        {
-            if (piles.Count > 2)
-            {
-                Math.SortPointByAxis(piles, v => v.mOrigin);
-                Math.GenConvex(piles, v => v.mOrigin, list);
-                list.ForEach(v => piles.Remove(v));
-            }
-        }
-
-        void Clear(Area area, List<Pile> piles)
-        {
-            if (area != null)
-            {
-                piles.AddRange(area.mPiles);
-                area.mMeshs.Clear();
-                //area.mPiles.Clear();
-                //area.mVerts.Ps.Clear();
-                Clear(area.mNext, piles);
-            }
-        }
-
-        Area FindArea(Area area, Vec2 point)
-        {
-            if (area.mNext == null)
-            {
-                return area;
-            }
-
-            if (!Math.IsContainsConvex(area.mNext.mVerts, point))
-            {
-                return area;
-            }
-
-            return FindArea(area.mNext, point);
-        }
-
-        Area mRoot;
+        private readonly List<Edge> mEdges = new List<Edge>();
+        private readonly List<Mesh> mMeshs = new List<Mesh>();
     }
 
     //  路径搜索
