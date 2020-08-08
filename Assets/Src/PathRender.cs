@@ -29,6 +29,8 @@ namespace mmc {
 
             mPathBuild.Insert(new Vector2(0, 0), 1);
 
+            mPathBuild.Insert(new Vector2(2, 2), 1);
+
             OnRender();
         }
 

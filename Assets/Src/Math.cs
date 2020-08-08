@@ -398,15 +398,15 @@ namespace mmc {
         //  根据p0, p1给定的方向, 返回合适的起点索引
         public static int CalcFirstIndex(List<Vector2> list, Vector2 p0, Vector2 p1)
         {
-            var p0p1  = p1 - p0;
-            var index = 0;
-            var cross = V2Cross(p0p1, list[index] - p0);
-            for (index = 1; index != list.Count; ++index)
+            var p0p1 = p1 - p0;
+            for (var i = 0; i != list.Count; ++i)
             {
-                var c = V2Cross(p0p1, list[index] - p0);
-                if (c * cross < 0) { break; }
+                var j = IndexNext(i, 1, list.Count);
+                var c0 = V2Cross(p0p1, list[i] - p0);
+                var c1 = V2Cross(p0p1, list[j] - p0);
+                if (c0 < 0 && c1 >= 0) { return j; }
             }
-            return index % list.Count;
+            return -1;
         }
 
         //  计算多边形顺序
