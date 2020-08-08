@@ -209,46 +209,12 @@ namespace mmc {
 
         void InitPiles(List<Pile> piles, List<Pile> list)
         {
-            //  极坐标原点
-            var o = 0;
-            for (var i = 1; i != piles.Count; ++i)
+            if (piles.Count > 2)
             {
-                if (piles[i].mOrigin.y < piles[o].mOrigin.y) { o = i; }
+                Math.SortPointByAxis(piles, v => v.mOrigin);
+                Math.GenConvex(piles, v => v.mOrigin, list);
+                list.ForEach(v => piles.Remove(v));
             }
-
-            //  极坐标排序
-            var point = piles[o];
-            piles.Sort((a, b) => {
-                var ap = a.mOrigin - point.mOrigin;
-                var bp = b.mOrigin - point.mOrigin;
-                var a0 = Mathf.Atan2(ap.y, ap.x);
-                var a1 = Mathf.Atan2(ap.y, ap.x);
-                if (a0 < a1) { return -1; }
-                if (a0 > a1) { return  1; }
-                if (a0 == a1)
-                {
-                    if (ap.x > bp.x) { return -1; }
-                    if (ap.x < bp.x) { return  1; }
-                }
-                return 0;
-            });
-
-            list = new List<Pile>() { piles[0], piles[1] };
-            for (var i = 1; i != piles.Count; ++i)
-            {
-                var p = piles[i];
-                while (piles.Count > 1)
-                {
-                    var a = piles[piles.Count - 2];
-                    var b = piles[piles.Count - 1];
-                    if (0 <= Math.V2Cross(b.mOrigin - a.mOrigin,
-                                          p.mOrigin - b.mOrigin)) { break; }
-                    list.RemoveAt(list.Count - 1);
-                }
-                list.Add(p);
-            }
-
-            list.ForEach(v => piles.Remove(v));
         }
 
         void Clear(Area area, List<Pile> piles)

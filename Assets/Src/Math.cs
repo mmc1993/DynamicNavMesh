@@ -335,6 +335,54 @@ namespace mmc {
             return true;
         }
 
+        //  极坐标排序
+        public static void SortPointByAxis<T>(List<T> list, System.Func<T, Vector2> func)
+        {
+            var o = 0;
+            for (var i = 1; i != list.Count; ++i)
+            {
+                if (func(list[i]).y < func(list[o]).y) { o = i; }
+            }
+
+            var point = list[o];
+            list.Sort((a, b) => {
+                var ap = func(a) - func(point);
+                var bp = func(b) - func(point);
+                var a0 = Mathf.Atan2(ap.y, ap.x);
+                var a1 = Mathf.Atan2(ap.y, ap.x);
+                if (a0 < a1) { return -1; }
+                if (a0 > a1) { return  1; }
+                if (a0 == a1)
+                {
+                    if (ap.x > bp.x) { return -1; }
+                    if (ap.x < bp.x) { return  1; }
+                }
+                return 0;
+            });
+        }
+
+        //  生成凸包
+        public static void GenConvex<T>(List<T> list, System.Func<T, Vector2> func, List<T> output)
+        {
+            output.Add(list[0]);
+            output.Add(list[1]);
+            for (var i = 1; i != list.Count; ++i)
+            {
+                var p = list[i];
+                while (list.Count > 1)
+                {
+                    var a = list[list.Count - 2];
+                    var b = list[list.Count - 1];
+                    if (0 <= V2Cross(func(b) - func(a), func(p) - func(b)))
+                    {
+                        break; 
+                    }
+                    output.RemoveAt(list.Count - 1);
+                }
+                output.Add(p);
+            }
+        }
+
         //  计算中点
         public static Vector2 CalcCenterCoord(Polygon polygon)
         {
