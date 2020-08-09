@@ -116,6 +116,15 @@ namespace mmc {
             return IndexNext(idx, num - add % num, num);
         }
 
+        //  点是否在线段上
+        public static bool IsOnEdge(Edge edge, Vector2 p)
+        {
+            var ap = p - edge.P0;
+            var bp = p - edge.P1;
+            return Vector2.Dot(ap, bp) < 0
+                && V2Cross(ap, bp) == 0.0f;
+        }
+
         //  相交
         //  直线 直线
         public static bool IsCrossSeg(Edge a, Edge b)
