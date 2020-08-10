@@ -4,8 +4,8 @@ using UnityEngine;
 
 namespace mmc {
     using Vec2 = Vector2;
-    //  路径生成
-    public class PathBuild {
+
+    public class PathCore {
         public class Pile {
             public Vec2  mOrigin;   //  原点
             public float mRadius;   //  半径
@@ -42,300 +42,327 @@ namespace mmc {
             public List<Edge> mEdges;   //  边集
         }
 
-        public List<Mesh> GetMeshs()
-        {
-            return mMeshs;
-        }
-
-        public void Init(List<Vec2> points)
-        {
-            mMeshs.Clear();
-
-            var mesh = new Mesh {
-                mPiles = new List<Pile>(),
-                mEdges = new List<Edge>(),
-            };
-            mMeshs.Add(mesh);
-
-            foreach (var p in points)
+        //  路径生成
+        public class PathBuild {
+            public List<Mesh> GetMeshs()
             {
-                var pile = new Pile { mOrigin = p, mRadius = 1, };
-
-                if (mesh.mEdges.Count != 0)
-                {
-                    mesh.mEdges[mesh.mEdges.Count - 1].mB  = pile;
-                }
-
-                mesh.mEdges.Add(new Edge { mA = pile, mSelf = mesh });
-
-                mesh.mPiles.Add(pile);
+                return mMeshs;
             }
 
-            mesh.mEdges[mesh.mEdges.Count - 1].mB = mesh.mPiles[0];
-        }
-
-        public Pile Insert(Vec2 p, float r)
-        {
-            var meshs = FindMeshs(p);
-
-            mEdges.Clear();
-            for (var i = 0; i != meshs.Count; ++i)
+            public void Init(List<Vec2> points)
             {
-                var mesh = meshs[i];
-                mMeshs.Remove(mesh);
-                var edges = mesh.mEdges;
-                for (var j = 0; j != edges.Count; ++j)
+                mMeshs.Clear();
+
+                var mesh = new Mesh {
+                    mPiles = new List<Pile>(),
+                    mEdges = new List<Edge>(),
+                };
+                mMeshs.Add(mesh);
+
+                foreach (var p in points)
                 {
-                    if (edges[j].mLink == null)
+                    var pile = new Pile { mOrigin = p, mRadius = 1, };
+
+                    if (mesh.mEdges.Count != 0)
                     {
-                        continue;
+                        mesh.mEdges[mesh.mEdges.Count - 1].mB  = pile;
                     }
-                    edges[j].mLink.mLink =null;
-                    mEdges.Add(edges[j].mLink);
+
+                    mesh.mEdges.Add(new Edge { mA = pile, mSelf = mesh });
+
+                    mesh.mPiles.Add(pile);
                 }
+
+                mesh.mEdges[mesh.mEdges.Count - 1].mB = mesh.mPiles[0];
             }
 
-            var pile = new Pile {
-                mOrigin = p,
-                mRadius = r,
-            };
-            Insert(meshs, pile);
-
-            return pile;
-        }
-
-        public void Remove(Pile pile)
-        {
-            var meshs = FindMeshs(pile);
-
-            mLinks.Clear();
-            mEdges.Clear();
-            for (var i = 0; i != meshs.Count; ++i)
+            public Pile Insert(Vec2 p, float r)
             {
-                var mesh = meshs[i];
-                mMeshs.Remove(mesh);
-                var edges = mesh.mEdges;
-                for (var j = 0; j != mesh.mEdges.Count; ++j)
+                var meshs = FindMeshs(p);
+
+                mEdges.Clear();
+                for (var i = 0; i != meshs.Count; ++i)
                 {
-                    if (edges[j].mA == pile || edges[j].mB == pile)
+                    var mesh = meshs[i];
+                    mMeshs.Remove(mesh);
+                    var edges = mesh.mEdges;
+                    for (var j = 0; j != edges.Count; ++j)
                     {
-                        continue;
-                    }
-                    if (edges[j].mLink != null)
-                    {
+                        if (edges[j].mLink == null)
+                        {
+                            continue;
+                        }
                         edges[j].mLink.mLink =null;
                         mEdges.Add(edges[j].mLink);
                     }
-                    mLinks.AddLast(edges[j]);
                 }
+
+                var pile = new Pile {
+                    mOrigin = p,
+                    mRadius = r,
+                };
+                Insert(meshs, pile);
+
+                return pile;
             }
 
-            var merge = new List<Edge>();
-            MergeEdges(merge);
-            StripEdges(merge);
-        }
-
-        void MergeEdges(List<Edge> output)
-        {
-            output.Add(mLinks.First.Value);
-
-            mLinks.RemoveFirst();
-
-            while (mLinks.Count != 0)
+            public void Remove(Pile pile)
             {
-                for (var it = mLinks.First; it != null; it = it.Next)
+                var meshs = FindMeshs(pile);
+
+                mLinks.Clear();
+                mEdges.Clear();
+                for (var i = 0; i != meshs.Count; ++i)
                 {
-                    if (it.Value.mA == output[output.Count - 1].mB)
+                    var mesh = meshs[i];
+                    mMeshs.Remove(mesh);
+                    var edges = mesh.mEdges;
+                    for (var j = 0; j != mesh.mEdges.Count; ++j)
                     {
-                        output.Add(it.Value); mLinks.Remove(it); break;
+                        if (edges[j].mA == pile || edges[j].mB == pile)
+                        {
+                            continue;
+                        }
+                        if (edges[j].mLink != null)
+                        {
+                            edges[j].mLink.mLink =null;
+                            mEdges.Add(edges[j].mLink);
+                        }
+                        mLinks.AddLast(edges[j]);
+                    }
+                }
+
+                var merge = new List<Edge>();
+                MergeEdges(merge);
+                StripEdges(merge);
+            }
+
+            void MergeEdges(List<Edge> output)
+            {
+                output.Add(mLinks.First.Value);
+
+                mLinks.RemoveFirst();
+
+                while (mLinks.Count != 0)
+                {
+                    for (var it = mLinks.First; it != null; it = it.Next)
+                    {
+                        if (it.Value.mA == output[output.Count - 1].mB)
+                        {
+                            output.Add(it.Value); mLinks.Remove(it); break;
+                        }
                     }
                 }
             }
-        }
 
-        void StripEdges(List<Edge> merge)
-        {
-            Debug.Assert(merge.Count > 2);
-
-            for (var i = 0; i != merge.Count; ++i)
+            void StripEdges(List<Edge> merge)
             {
-                var e0 = merge[Math.Index(i,     merge.Count)];
-                var e1 = merge[Math.Index(i + 1, merge.Count)];
-                var e2 = merge[Math.Index(i + 2, merge.Count)];
-                var a = e1.mB.mOrigin - e1.mA.mOrigin;
-                var b = e2.mB.mOrigin - e2.mA.mOrigin;
-                if (Math.V2Cross(a, b) < 0)
-                {
-                    var pos = Math.Index(i, merge.Count);
-                    merge.Insert(pos, new Edge {
-                        mA = e0.mA,
-                        mB = e2.mA,
-                    });
-                    merge.Remove(e0);
-                    merge.Remove(e1);
+                Debug.Assert(merge.Count > 2);
 
+                for (var i = 0; i != merge.Count; ++i)
+                {
+                    var e0 = merge[Math.Index(i,     merge.Count)];
+                    var e1 = merge[Math.Index(i + 1, merge.Count)];
+                    var e2 = merge[Math.Index(i + 2, merge.Count)];
+                    var a = e1.mB.mOrigin - e1.mA.mOrigin;
+                    var b = e2.mB.mOrigin - e2.mA.mOrigin;
+                    if (Math.V2Cross(a, b) < 0)
+                    {
+                        var pos = Math.Index(i, merge.Count);
+                        merge.Insert(pos, new Edge {
+                            mA = e0.mA,
+                            mB = e2.mA,
+                        });
+                        merge.Remove(e0);
+                        merge.Remove(e1);
+
+                        var mesh = new Mesh {
+                            mEdges = new List<Edge>(),
+                            mPiles = new List<Pile>(),
+                        };
+                        e0.mSelf = mesh;
+                        e1.mSelf = mesh;
+                        mesh.mEdges.Add(e0);
+                        mesh.mEdges.Add(e1);
+                        mesh.mEdges.Add(new Edge {
+                            mA = e2.mA,
+                            mB = e0.mA,
+                            mSelf = mesh,
+                        });
+
+                        mesh.mPiles.Add(e0.mA);
+                        mesh.mPiles.Add(e1.mA);
+                        mesh.mPiles.Add(e2.mA);
+
+                        mesh.mOrigin = Math.CalcCenterCoord(mesh.mPiles, v => v.mOrigin);
+
+                        LinkMesh(mesh); 
+
+                        i -= 2;
+                    }
+                }
+
+                {
                     var mesh = new Mesh {
                         mEdges = new List<Edge>(),
                         mPiles = new List<Pile>(),
                     };
-                    e0.mSelf = mesh;
-                    e1.mSelf = mesh;
-                    mesh.mEdges.Add(e0);
-                    mesh.mEdges.Add(e1);
-                    mesh.mEdges.Add(new Edge {
-                        mA = e2.mA,
-                        mB = e0.mA,
-                        mSelf = mesh,
-                    });
 
-                    mesh.mPiles.Add(e0.mA);
-                    mesh.mPiles.Add(e1.mA);
-                    mesh.mPiles.Add(e2.mA);
+                    for (var i = 0; i != merge.Count; ++i)
+                    {
+                        merge[i].mSelf = mesh;
+                        mesh.mEdges.Add(merge[i]);
+                        mesh.mPiles.Add(merge[i].mA);
+                    }
 
                     mesh.mOrigin = Math.CalcCenterCoord(mesh.mPiles, v => v.mOrigin);
 
-                    LinkMesh(mesh); 
-
-                    i -= 2;
+                    LinkMesh(mesh);
                 }
             }
 
+            void Insert(List<Mesh> meshs, Pile pile)
             {
-                var mesh = new Mesh {
-                    mEdges = new List<Edge>(),
-                    mPiles = new List<Pile>(),
-                };
-
-                for (var i = 0; i != merge.Count; ++i)
+                if      (meshs.Count == 1)
                 {
-                    merge[i].mSelf = mesh;
-                    mesh.mEdges.Add(merge[i]);
-                    mesh.mPiles.Add(merge[i].mA);
+                    AppendPile(meshs[0], pile);
+                }
+                else if (meshs.Count > 1)
+                {
+                    meshs.ForEach(v => InsertPile(v, pile));
+                }
+            }
+
+            void InsertPile(Mesh mesh, Pile p)
+            {
+                Math.Edge edge;
+                for (var i = 0; i != mesh.mEdges.Count; ++i)
+                {
+                    edge.P0 = mesh.mEdges[i].mA.mOrigin;
+                    edge.P1 = mesh.mEdges[i].mB.mOrigin;
+                    if (Math.IsOnEdge(edge, p.mOrigin))
+                    {
+                        mesh.mPiles.Insert(i + 1, p);
+                        mesh.mEdges.Insert(i + 1, new Edge { mA = mesh.mEdges[i].mA, mB = p, mSelf = mesh, });
+                        mesh.mEdges.Insert(i + 2, new Edge { mB = mesh.mEdges[i].mB, mA = p, mSelf = mesh, });
+                        mesh.mEdges.RemoveAt(i);
+                        break;
+                    }
                 }
 
-                mesh.mOrigin = Math.CalcCenterCoord(mesh.mPiles, v => v.mOrigin);
+                mesh.mOrigin = Math.CalcCenterCoord(mesh.mPiles, v => v);
 
                 LinkMesh(mesh);
             }
-        }
 
-        void Insert(List<Mesh> meshs, Pile pile)
-        {
-            if      (meshs.Count == 1)
+            void AppendPile(Mesh mesh, Pile p)
             {
-                AppendPile(meshs[0], pile);
-            }
-            else if (meshs.Count > 1)
-            {
-                meshs.ForEach(v => InsertPile(v, pile));
-            }
-        }
-
-        void InsertPile(Mesh mesh, Pile p)
-        {
-            Math.Edge edge;
-            for (var i = 0; i != mesh.mEdges.Count; ++i)
-            {
-                edge.P0 = mesh.mEdges[i].mA.mOrigin;
-                edge.P1 = mesh.mEdges[i].mB.mOrigin;
-                if (Math.IsOnEdge(edge, p.mOrigin))
+                for (var i = 0; i != mesh.mPiles.Count;)
                 {
-                    mesh.mPiles.Insert(i + 1, p);
-                    mesh.mEdges.Insert(i + 1, new Edge { mA = mesh.mEdges[i].mA, mB = p, mSelf = mesh, });
-                    mesh.mEdges.Insert(i + 2, new Edge { mB = mesh.mEdges[i].mB, mA = p, mSelf = mesh, });
-                    mesh.mEdges.RemoveAt(i);
-                    break;
-                }
-            }
+                    var val = new Mesh {
+                        mPiles = new List<Pile>(),
+                        mEdges = new List<Edge>(),
+                    };
 
-            mesh.mOrigin = Math.CalcCenterCoord(mesh.mPiles, v => v);
-
-            LinkMesh(mesh);
-        }
-
-        void AppendPile(Mesh mesh, Pile p)
-        {
-            for (var i = 0; i != mesh.mPiles.Count;)
-            {
-                var val = new Mesh {
-                    mPiles = new List<Pile>(),
-                    mEdges = new List<Edge>(),
-                };
-
-                //  第一条边
-                val.mEdges.Add(new Edge {
-                    mA = p, mB = mesh.mPiles[i], mSelf = val,
-                });
-                val.mPiles.Add(val.mEdges[0].mA);
-                val.mPiles.Add(val.mEdges[0].mB);
-
-                //  中间边
-                var ab = val.mPiles[1].mOrigin
-                       - val.mPiles[0].mOrigin;
-                for (; i != mesh.mPiles.Count; ++i)
-                {
-                    var k = (i + 1) % mesh.mPiles.Count;
-                    var cd = p - mesh.mPiles[k].mOrigin;
-                    if (0 > Math.V2Cross(cd, ab)) break;
-                    
-                    val.mPiles.Add(mesh.mPiles[k]);
+                    //  第一条边
                     val.mEdges.Add(new Edge {
-                        mA = val.mPiles[val.mPiles.Count - 2],
-                        mB = val.mPiles[val.mPiles.Count - 1],
+                        mA = p, mB = mesh.mPiles[i], mSelf = val,
+                    });
+                    val.mPiles.Add(val.mEdges[0].mA);
+                    val.mPiles.Add(val.mEdges[0].mB);
+
+                    //  中间边
+                    var ab = val.mPiles[1].mOrigin
+                           - val.mPiles[0].mOrigin;
+                    for (; i != mesh.mPiles.Count; ++i)
+                    {
+                        var k = (i + 1) % mesh.mPiles.Count;
+                        var cd = p - mesh.mPiles[k].mOrigin;
+                        if (0 > Math.V2Cross(cd, ab)) break;
+                    
+                        val.mPiles.Add(mesh.mPiles[k]);
+                        val.mEdges.Add(new Edge {
+                            mA = val.mPiles[val.mPiles.Count - 2],
+                            mB = val.mPiles[val.mPiles.Count - 1],
+                            mSelf = val,
+                        });
+                    }
+
+                    //  最后一条边
+                    val.mEdges.Add(new Edge {
+                        mA = val.mPiles[val.mPiles.Count - 1],
+                        mB = val.mPiles[0],
                         mSelf = val,
                     });
+
+                    //  计算中点
+                    val.mOrigin = Math.CalcCenterCoord(val.mPiles, v => v);
+
+                    //  连接边
+                    LinkMesh(val);
                 }
-
-                //  最后一条边
-                val.mEdges.Add(new Edge {
-                    mA = val.mPiles[val.mPiles.Count - 1],
-                    mB = val.mPiles[0],
-                    mSelf = val,
-                });
-
-                //  计算中点
-                val.mOrigin = Math.CalcCenterCoord(val.mPiles, v => v);
-
-                //  连接边
-                LinkMesh(val);
             }
-        }
 
-        void LinkMesh(Mesh mesh)
-        {
-            foreach (var edge in mesh.mEdges)
+            void LinkMesh(Mesh mesh)
             {
-                var link = mEdges.Find(v => edge.Equals(v));
-                if (link != null)
+                foreach (var edge in mesh.mEdges)
                 {
-                    edge.mLink = link;
-                    link.mLink = edge;
+                    var link = mEdges.Find(v => edge.Equals(v));
+                    if (link != null)
+                    {
+                        edge.mLink = link;
+                        link.mLink = edge;
+                    }
+                    else
+                    {
+                        edge.mLink = null;
+                    }
+                    mEdges.Add(edge);
                 }
-                else
-                {
-                    edge.mLink = null;
-                }
-                mEdges.Add(edge);
+                mMeshs.Add(mesh);
             }
-            mMeshs.Add(mesh);
+
+            List<Mesh> FindMeshs(Pile pile)
+            {
+                return mMeshs.FindAll(mesh => mesh.mPiles.Contains(pile));
+            }
+
+            List<Mesh> FindMeshs(Vec2 point)
+            {
+                return mMeshs.FindAll(mesh => Math.IsContainsConvex(mesh.mPiles, point, v => v.mOrigin));
+            }
+
+            private readonly LinkedList<Edge> mLinks = new LinkedList<Edge>();  //  用于删除节点时
+            private readonly List<Edge> mEdges = new List<Edge>();
+            private readonly List<Mesh> mMeshs = new List<Mesh>();
         }
 
-        List<Mesh> FindMeshs(Vec2 point)
+        //  路径搜索
+        public class PathQuery {
+
+        }
+
+        public void Init(List<Vec2> list)
         {
-            return mMeshs.FindAll(mesh => Math.IsContainsConvex(mesh.mPiles, point, v => v.mOrigin));
+            mBuild.Init(list);
         }
 
-        List<Mesh> FindMeshs(Pile pile)
+        public Pile Insert(Vec2 p, float r)
         {
-            return mMeshs.FindAll(mesh => mesh.mPiles.Contains(pile));
+            return mBuild.Insert(p, r);
         }
 
-        private readonly LinkedList<Edge> mLinks = new LinkedList<Edge>();  //  用于删除节点时
-        private readonly List<Edge> mEdges = new List<Edge>();
-        private readonly List<Mesh> mMeshs = new List<Mesh>();
-    }
+        public void Remove(Pile pile)
+        {
+            mBuild.Remove(pile);
+        }
 
-    //  路径搜索
-    public class PathQuery {
+        public List<Mesh> GetMeshs()
+        {
+            return mBuild.GetMeshs();
+        }
+
+        PathBuild mBuild = new PathBuild();
+        PathQuery mQuery = new PathQuery();
     }
 }

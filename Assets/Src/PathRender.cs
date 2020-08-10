@@ -9,7 +9,7 @@ namespace mmc {
 
         void Start()
         {
-            mPathBuild = new PathBuild();
+            mPathCore = new PathCore();
 
             List<Vector2> poly = new List<Vector2>{
                 new Vector2(-5, -5),
@@ -17,7 +17,7 @@ namespace mmc {
                 new Vector2( 5,  5),
                 new Vector2(-5,  5),
             };
-            mPathBuild.Init(poly);
+            mPathCore.Init(poly);
         }
 
         void Update()
@@ -36,7 +36,7 @@ namespace mmc {
                         Vector2 point;
                         point.x = result.point.x;
                         point.y = result.point.z;
-                        var pile = mPathBuild.Insert(point, 2);
+                        var pile = mPathCore.Insert(point, 2);
                         mCubeMap.Add(cube.transform, pile);
                         OnRefresh();
                     }
@@ -51,7 +51,7 @@ namespace mmc {
                     if (mCubeMap.TryGetValue(result.transform, out var pile))
                     {
                         Destroy(result.transform.gameObject);
-                        mPathBuild.Remove(pile);
+                        mPathCore.Remove(pile);
                         OnRefresh();
                     }
                 }
@@ -83,13 +83,13 @@ namespace mmc {
                     {
                         mDragTarget.position = result.point;
 
-                        mPathBuild.Remove(mCubeMap[mDragTarget]);
+                        mPathCore.Remove(mCubeMap[mDragTarget]);
 
                         Vector2 point;
                         point.x = result.point.x;
                         point.y = result.point.z;
                         mCubeMap.Remove(mDragTarget);
-                        var pile = mPathBuild.Insert(point, 0.1f);
+                        var pile = mPathCore.Insert(point, 0.1f);
                         mCubeMap.Add(mDragTarget.transform, pile);
                         OnRefresh();
                     }
@@ -121,14 +121,14 @@ namespace mmc {
                 }
             }
             
-            foreach (var mesh in mPathBuild.GetMeshs())
+            foreach (var mesh in mPathCore.GetMeshs())
             {
                 DrawPiles(mesh.mPiles);
                 DrawEdges(mesh.mEdges);
             }
         }
 
-        void DrawPiles(List<PathBuild.Pile> list)
+        void DrawPiles(List<PathCore.Pile> list)
         {
             var temp = Instantiate(mLine.gameObject,
                             mLine.transform.parent);
@@ -145,7 +145,7 @@ namespace mmc {
             temp.SetActive(true);
         }
 
-        void DrawEdges(List<PathBuild.Edge> list)
+        void DrawEdges(List<PathCore.Edge> list)
         {
             for (var i = 0; i != list.Count; ++i)
             {
@@ -183,8 +183,8 @@ namespace mmc {
             }
         }
 
-        Dictionary<Transform, PathBuild.Pile> mCubeMap = new Dictionary<Transform, PathBuild.Pile>();
+        Dictionary<Transform, PathCore.Pile> mCubeMap = new Dictionary<Transform, PathCore.Pile>();
         Transform mDragTarget;
-        PathBuild mPathBuild;
+        PathCore  mPathCore;
     }
 }
