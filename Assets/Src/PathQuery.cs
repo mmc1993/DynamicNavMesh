@@ -159,7 +159,7 @@ namespace mmc {
 
             for (var i = 0; i != merge.Count; ++i)
             {
-                var e0 = merge[Math.Index(i, merge.Count)];
+                var e0 = merge[Math.Index(i,     merge.Count)];
                 var e1 = merge[Math.Index(i + 1, merge.Count)];
                 var e2 = merge[Math.Index(i + 2, merge.Count)];
                 var a = e1.mB.mOrigin - e1.mA.mOrigin;
@@ -194,9 +194,9 @@ namespace mmc {
 
                     mesh.mOrigin = Math.CalcCenterCoord(mesh.mPiles, v => v.mOrigin);
 
-                    LinkMesh(mesh);
+                    LinkMesh(mesh); 
 
-                    --i; --i;
+                    i -= 2;
                 }
             }
 
