@@ -119,9 +119,9 @@ namespace mmc {
         //  计算索引
         public static int Index(int idx, int num)
         {
-            if (idx == 0) { return idx; }
-            if (idx  > 0) { return idx % num; }
-            return num - (Mathf.Abs(idx) % num);
+            idx %= num;
+            if (idx >= 0) { return idx; }
+            return (num + idx) % num;
         }
 
         //  点是否在线段上
@@ -130,7 +130,7 @@ namespace mmc {
             var ap = p - edge.P0;
             var bp = p - edge.P1;
             return Vector2.Dot(ap, bp) < 0
-                && V2Cross(ap, bp) == 0.0f;
+                && V2Cross(ap, bp).Equals(0.0f);
         }
 
         //  相交

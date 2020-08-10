@@ -78,6 +78,8 @@ namespace mmc {
 
             public Pile Insert(Vec2 p, float r)
             {
+                mInsert = p;
+                Debug.LogFormat("插入: {0}, {1}", p.x, p.y);
                 var meshs = FindMeshs(p);
 
                 mEdges.Clear();
@@ -102,7 +104,7 @@ namespace mmc {
                     mRadius = r,
                 };
                 Insert(meshs, pile);
-
+                Dump();
                 return pile;
             }
 
@@ -157,8 +159,6 @@ namespace mmc {
 
             void StripEdges(List<Edge> merge)
             {
-                Debug.Assert(merge.Count > 2);
-
                 for (var i = 0; i != merge.Count; ++i)
                 {
                     var e0 = merge[Math.Index(i,     merge.Count)];
@@ -223,7 +223,7 @@ namespace mmc {
 
             void Insert(List<Mesh> meshs, Pile pile)
             {
-                if      (meshs.Count == 1)
+                if (meshs.Count == 1)
                 {
                     AppendPile(meshs[0], pile);
                 }
@@ -249,6 +249,8 @@ namespace mmc {
                         break;
                     }
                 }
+
+                Debug.AssertFormat(mesh.mEdges.Count > 2, "{0}, {1}", mInsert.x, mInsert.y);
 
                 mesh.mOrigin = Math.CalcCenterCoord(mesh.mPiles, v => v);
 
@@ -332,6 +334,37 @@ namespace mmc {
                 return mMeshs.FindAll(mesh => Math.IsContainsConvex(mesh.mPiles, point, v => v.mOrigin));
             }
 
+            void Dump()
+            {
+                mBuffer += string.Format("Insert {0}, {1}\n", mInsert.x, mInsert.y);
+                for (var i = 0; i != mMeshs.Count; ++i)
+                {
+                    mBuffer += string.Format("Mesh{0}\n", i);
+                    for (var j = 0; j != mMeshs[i].mPiles.Count; ++j)
+                    {
+                        mBuffer += string.Format("Pile{0} {1}, {2}\n",
+                            j,
+                            mMeshs[i].mPiles[j].mOrigin.x,
+                            mMeshs[i].mPiles[j].mOrigin.y);
+                    }
+
+                    mBuffer += string.Format("{0}, ", mMeshs[i].mEdges.Count * 4);
+                    for (var j = 0; j != mMeshs[i].mEdges.Count; ++j)
+                    {
+                        mBuffer += string.Format("Edge{0} {1}, {2}, {3}, {4}\n",
+                            j,
+                            mMeshs[i].mEdges[j].mA.mOrigin.x,
+                            mMeshs[i].mEdges[j].mA.mOrigin.y,
+                            mMeshs[i].mEdges[j].mB.mOrigin.x,
+                            mMeshs[i].mEdges[j].mB.mOrigin.y);
+                    }
+                }
+                mBuffer += "\n\n";
+                System.IO.File.WriteAllText("dump.txt", mBuffer);
+            }
+
+            Vec2 mInsert;
+            string mBuffer = "";
             private readonly LinkedList<Edge> mLinks = new LinkedList<Edge>();  //  用于删除节点时
             private readonly List<Edge> mEdges = new List<Edge>();
             private readonly List<Mesh> mMeshs = new List<Mesh>();
