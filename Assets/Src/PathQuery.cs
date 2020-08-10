@@ -159,14 +159,15 @@ namespace mmc {
 
             for (var i = 0; i != merge.Count; ++i)
             {
-                var e0 = merge[i];
-                var e1 = merge[Math.IndexNext(i, 1, merge.Count)];
-                var e2 = merge[Math.IndexNext(i, 2, merge.Count)];
+                var e0 = merge[Math.Index(i, merge.Count)];
+                var e1 = merge[Math.Index(i + 1, merge.Count)];
+                var e2 = merge[Math.Index(i + 2, merge.Count)];
                 var a = e1.mB.mOrigin - e1.mA.mOrigin;
                 var b = e2.mB.mOrigin - e2.mA.mOrigin;
                 if (Math.V2Cross(a, b) < 0)
                 {
-                    merge.Insert(i, new Edge {
+                    var pos = Math.Index(i, merge.Count);
+                    merge.Insert(pos, new Edge {
                         mA = e0.mA,
                         mB = e2.mA,
                     });
@@ -195,7 +196,7 @@ namespace mmc {
 
                     LinkMesh(mesh);
 
-                    --i;
+                    --i; --i;
                 }
             }
 

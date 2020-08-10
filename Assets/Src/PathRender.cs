@@ -56,6 +56,45 @@ namespace mmc {
                     }
                 }
             }
+
+            if (Input.GetMouseButtonDown(2))
+            {
+                var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                if (Physics.Raycast(ray, out var result))
+                {
+                    if (mCubeMap.TryGetValue(result.transform, out var pile))
+                    {
+                        mDragTarget = result.transform;
+                    }
+                }
+            }
+
+            if (Input.GetMouseButtonUp(2))
+            {
+                mDragTarget = null;
+            }
+
+            if (mDragTarget != null)
+            {
+                var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                if (Physics.Raycast(ray, out var result))
+                {
+                    if (result.transform == transform)
+                    {
+                        mDragTarget.position = result.point;
+
+                        mPathBuild.Remove(mCubeMap[mDragTarget]);
+
+                        Vector2 point;
+                        point.x = result.point.x;
+                        point.y = result.point.z;
+                        mCubeMap.Remove(mDragTarget);
+                        var pile = mPathBuild.Insert(point, 0.1f);
+                        mCubeMap.Add(mDragTarget.transform, pile);
+                        OnRefresh();
+                    }
+                }
+            }
         }
 
         public void OnRefresh()
@@ -145,6 +184,7 @@ namespace mmc {
         }
 
         Dictionary<Transform, PathBuild.Pile> mCubeMap = new Dictionary<Transform, PathBuild.Pile>();
+        Transform mDragTarget;
         PathBuild mPathBuild;
     }
 }

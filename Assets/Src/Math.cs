@@ -116,6 +116,14 @@ namespace mmc {
             return IndexNext(idx, num - add % num, num);
         }
 
+        //  计算索引
+        public static int Index(int idx, int num)
+        {
+            if (idx == 0) { return idx; }
+            if (idx  > 0) { return idx % num; }
+            return num - (Mathf.Abs(idx) % num);
+        }
+
         //  点是否在线段上
         public static bool IsOnEdge(Edge edge, Vector2 p)
         {
