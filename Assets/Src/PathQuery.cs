@@ -68,7 +68,7 @@ namespace mmc {
                         mesh.mEdges[mesh.mEdges.Count - 1].mB  = pile;
                     }
 
-                    mesh.mEdges.Add(new Edge { mA = pile, mSelf = mesh });
+                    mesh.mEdges.Add(new Edge { mA = pile });
 
                     mesh.mPiles.Add(pile);
                 }
@@ -143,9 +143,9 @@ namespace mmc {
                 Dump("Remove");
             }
 
-            void MergeEdges(List<Edge> output)
+            void MergeEdges(List<Edge> merge)
             {
-                output.Add(mLinks.First.Value);
+                merge.Add(mLinks.First.Value);
 
                 mLinks.RemoveFirst();
 
@@ -153,9 +153,9 @@ namespace mmc {
                 {
                     for (var it = mLinks.First; it != null; it = it.Next)
                     {
-                        if (it.Value.mA == output[output.Count - 1].mB)
+                        if (it.Value.mA == merge[merge.Count - 1].mB)
                         {
-                            output.Add(it.Value); mLinks.Remove(it); break;
+                            merge.Add(it.Value); mLinks.Remove(it); break;
                         }
                     }
                 }
@@ -163,49 +163,7 @@ namespace mmc {
 
             void StripEdges(List<Edge> merge)
             {
-                for (var i = 0; i != merge.Count; ++i)
-                {
-                    var e0 = merge[Math.Index(i,     merge.Count)];
-                    var e1 = merge[Math.Index(i + 1, merge.Count)];
-                    var e2 = merge[Math.Index(i + 2, merge.Count)];
-                    var a = e1.mB.mOrigin - e1.mA.mOrigin;
-                    var b = e2.mB.mOrigin - e2.mA.mOrigin;
-                    if (Math.V2Cross(a, b) < 0)
-                    {
-                        var pos = Math.Index(i, merge.Count);
-                        merge.Insert(pos, new Edge {
-                            mA = e0.mA,
-                            mB = e2.mA,
-                        });
-                        merge.Remove(e0);
-                        merge.Remove(e1);
-
-                        var mesh = new Mesh {
-                            mEdges = new List<Edge>(),
-                            mPiles = new List<Pile>(),
-                        };
-                        e0.mSelf = mesh;
-                        e1.mSelf = mesh;
-                        mesh.mEdges.Add(e0);
-                        mesh.mEdges.Add(e1);
-                        mesh.mEdges.Add(new Edge {
-                            mA = e2.mA,
-                            mB = e0.mA,
-                            mSelf = mesh,
-                        });
-
-                        mesh.mPiles.Add(e0.mA);
-                        mesh.mPiles.Add(e1.mA);
-                        mesh.mPiles.Add(e2.mA);
-
-                        mesh.mOrigin = Math.CalcCenterCoord(mesh.mPiles, v => v.mOrigin);
-
-                        LinkMesh(mesh); 
-
-                        i -= 2;
-                    }
-                }
-
+                if (Math.IsConvex(merge, e => e.mA.mOrigin))
                 {
                     var mesh = new Mesh {
                         mEdges = new List<Edge>(),
@@ -214,15 +172,109 @@ namespace mmc {
 
                     for (var i = 0; i != merge.Count; ++i)
                     {
-                        merge[i].mSelf = mesh;
-                        mesh.mEdges.Add(merge[i]);
+                        mesh.mEdges.Add(merge[i]   );
                         mesh.mPiles.Add(merge[i].mA);
                     }
 
-                    mesh.mOrigin = Math.CalcCenterCoord(mesh.mPiles, v => v.mOrigin);
-
                     LinkMesh(mesh);
                 }
+                else
+                {
+                    var links = new List<Edge> { merge[0] };
+                    for (var i = 1; merge.Count != 0; ++i)
+                    {
+                        var e0 = links[Math.Index(-1, links.Count)];
+                        var e1 = merge[Math.Index( i, merge.Count)];
+                        var ab = e0.mB.mOrigin - e0.mA.mOrigin;
+                        var cd = e1.mB.mOrigin - e1.mA.mOrigin;
+                        if (Math.V2Cross(ab, cd) < 0)
+                        {
+                            if (links.Count > 1)
+                            {
+                                //  如果构成凸包, 则构造网格
+                                links.Add(new Edge { mA = e1.mB, mB = e0.mA });
+                                var find = merge.Find(m => {
+                                    return links.Find(l => m.mA == l.mA || m.mA == l.mB) == null
+                                        && Math.IsContainsConvex(links, m.mA, e => e.mA.mOrigin);
+                                });
+
+                                if (find == null)
+                                {
+                                    merge.Insert(i, new Edge { mA = links[0].mA, mB = e1.mB });
+                                    var mesh = new Mesh { mEdges = links, mPiles = new List<Pile>() };
+                                    foreach (var e in links) { mesh.mPiles.Add(e.mA); merge.Remove(e); }
+                                    LinkMesh(mesh);
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                links.Clear();
+                                links.Add(e1);
+                            }
+                        }
+                        else
+                        {
+                            links.Add(e1);
+                        }
+                    }
+
+                    if (merge.Count != 0) { StripEdges(merge); }
+                }
+
+
+                //for (var i = 0; i != merge.Count; ++i)
+                //{
+                //    var e0 = merge[Math.Index(i,     merge.Count)];
+                //    var e1 = merge[Math.Index(i + 1, merge.Count)];
+                //    var e2 = merge[Math.Index(i + 2, merge.Count)];
+                //    var a = e1.mB.mOrigin - e1.mA.mOrigin;
+                //    var b = e2.mB.mOrigin - e2.mA.mOrigin;
+                //    if (Math.V2Cross(a, b) < 0)
+                //    {
+                //        var pos = Math.Index(i, merge.Count);
+                //        merge.Insert(pos, new Edge {
+                //            mA = e0.mA,
+                //            mB = e2.mA,
+                //        });
+                //        merge.Remove(e0);
+                //        merge.Remove(e1);
+
+                //        var mesh = new Mesh {
+                //            mEdges = new List<Edge>(),
+                //            mPiles = new List<Pile>(),
+                //        };
+                //        mesh.mEdges.Add(e0);
+                //        mesh.mEdges.Add(e1);
+                //        mesh.mEdges.Add(new Edge {
+                //            mA = e2.mA,
+                //            mB = e0.mA,
+                //        });
+
+                //        mesh.mPiles.Add(e0.mA);
+                //        mesh.mPiles.Add(e1.mA);
+                //        mesh.mPiles.Add(e2.mA);
+
+                //        LinkMesh(mesh); 
+
+                //        i -= 2;
+                //    }
+                //}
+
+                //{
+                //    var mesh = new Mesh {
+                //        mEdges = new List<Edge>(),
+                //        mPiles = new List<Pile>(),
+                //    };
+
+                //    for (var i = 0; i != merge.Count; ++i)
+                //    {
+                //        mesh.mEdges.Add(merge[i]);
+                //        mesh.mPiles.Add(merge[i].mA);
+                //    }
+
+                //    LinkMesh(mesh);
+                //}
             }
 
             void Insert(List<Mesh> meshs, Pile pile)
@@ -247,16 +299,14 @@ namespace mmc {
                     if (Math.IsOnEdge(edge, p.mOrigin))
                     {
                         mesh.mPiles.Insert(i + 1, p);
-                        mesh.mEdges.Insert(i + 1, new Edge { mA = mesh.mEdges[i].mA, mB = p, mSelf = mesh, });
-                        mesh.mEdges.Insert(i + 2, new Edge { mB = mesh.mEdges[i].mB, mA = p, mSelf = mesh, });
+                        mesh.mEdges.Insert(i + 1, new Edge { mA = mesh.mEdges[i].mA, mB = p });
+                        mesh.mEdges.Insert(i + 2, new Edge { mB = mesh.mEdges[i].mB, mA = p });
                         mesh.mEdges.RemoveAt(i);
                         break;
                     }
                 }
 
                 Debug.AssertFormat(mesh.mEdges.Count > 2, "{0}, {1}", mInsert.x, mInsert.y);
-
-                mesh.mOrigin = Math.CalcCenterCoord(mesh.mPiles, v => v);
 
                 LinkMesh(mesh);
             }
@@ -272,7 +322,7 @@ namespace mmc {
 
                     //  第一条边
                     val.mEdges.Add(new Edge {
-                        mA = p, mB = mesh.mPiles[i], mSelf = val,
+                        mA = p, mB = mesh.mPiles[i]
                     });
                     val.mPiles.Add(val.mEdges[0].mA);
                     val.mPiles.Add(val.mEdges[0].mB);
@@ -290,19 +340,14 @@ namespace mmc {
                         val.mEdges.Add(new Edge {
                             mA = val.mPiles[val.mPiles.Count - 2],
                             mB = val.mPiles[val.mPiles.Count - 1],
-                            mSelf = val,
                         });
                     }
 
                     //  最后一条边
                     val.mEdges.Add(new Edge {
-                        mA = val.mPiles[val.mPiles.Count - 1],
-                        mB = val.mPiles[0],
-                        mSelf = val,
+                        mA = val.mPiles[Math.Index(-1, val.mPiles.Count)],
+                        mB = val.mPiles[Math.Index( 0, val.mPiles.Count)],
                     });
-
-                    //  计算中点
-                    val.mOrigin = Math.CalcCenterCoord(val.mPiles, v => v);
 
                     //  连接边
                     LinkMesh(val);
@@ -323,8 +368,11 @@ namespace mmc {
                     {
                         edge.mLink = null;
                     }
+                    edge.mSelf= mesh;
                     mEdges.Add(edge);
                 }
+
+                mesh.mOrigin = Math.CalcCenterCoord(mesh.mPiles, v => v.mOrigin);
 
                 Debug.Assert(mesh.mPiles.Count > 2);
                 mMeshs.Add(mesh);
@@ -342,6 +390,7 @@ namespace mmc {
 
             void Dump(string op)
             {
+                return;
                 mBuffer += string.Format("{0} {1}, {2}\n", op, mInsert.x, mInsert.y);
                 for (var i = 0; i != mMeshs.Count; ++i)
                 {
