@@ -343,6 +343,24 @@ namespace mmc {
             return true;
         }
 
+        //  判断是否凸包
+        public static bool IsConvex<T>(List<T> list, System.Func<T, Vector2> func)
+        {
+            for (var i = 0; i != list.Count; ++i)
+            {
+                var a = func(list[i]);
+                var b = func(list[Index(i + 1, list.Count)]);
+                var c = func(list[Index(i + 2, list.Count)]);
+                var d = func(list[Index(i + 3, list.Count)]);
+                var ab = b - a;var bc = c - b;var cd = d - c;
+                if (V2Cross(ab, bc) * V2Cross(bc , cd) < 0)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         //  极坐标排序
         public static void SortPointByAxis<T>(List<T> list, System.Func<T, Vector2> func)
         {

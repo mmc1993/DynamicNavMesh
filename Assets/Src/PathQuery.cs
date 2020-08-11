@@ -80,6 +80,7 @@ namespace mmc {
             {
                 mInsert = p;
                 Debug.LogFormat("插入: {0}, {1}", p.x, p.y);
+
                 var meshs = FindMeshs(p);
 
                 mEdges.Clear();
@@ -104,12 +105,14 @@ namespace mmc {
                     mRadius = r,
                 };
                 Insert(meshs, pile);
-                Dump();
+                Dump("Insert");
+
                 return pile;
             }
 
             public void Remove(Pile pile)
             {
+                mInsert = pile;
                 var meshs = FindMeshs(pile);
 
                 mLinks.Clear();
@@ -137,6 +140,7 @@ namespace mmc {
                 var merge = new List<Edge>();
                 MergeEdges(merge);
                 StripEdges(merge);
+                Dump("Remove");
             }
 
             void MergeEdges(List<Edge> output)
@@ -310,7 +314,7 @@ namespace mmc {
                 foreach (var edge in mesh.mEdges)
                 {
                     var link = mEdges.Find(v => edge.Equals(v));
-                    if (link != null)
+                    if (link != null && link != edge)
                     {
                         edge.mLink = link;
                         link.mLink = edge;
@@ -321,6 +325,8 @@ namespace mmc {
                     }
                     mEdges.Add(edge);
                 }
+
+                Debug.Assert(mesh.mPiles.Count > 2);
                 mMeshs.Add(mesh);
             }
 
@@ -334,9 +340,9 @@ namespace mmc {
                 return mMeshs.FindAll(mesh => Math.IsContainsConvex(mesh.mPiles, point, v => v.mOrigin));
             }
 
-            void Dump()
+            void Dump(string op)
             {
-                mBuffer += string.Format("Insert {0}, {1}\n", mInsert.x, mInsert.y);
+                mBuffer += string.Format("{0} {1}, {2}\n", op, mInsert.x, mInsert.y);
                 for (var i = 0; i != mMeshs.Count; ++i)
                 {
                     mBuffer += string.Format("Mesh{0}\n", i);
