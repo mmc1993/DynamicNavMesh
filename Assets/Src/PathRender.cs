@@ -123,75 +123,75 @@ namespace mmc {
 
 
             {
-                var temp = Instantiate(mLine.gameObject, mLine.transform.parent);
-                var line = temp.GetComponent<LineRenderer>();
-                temp.SetActive(true);
-                line.positionCount = 3;
-                line.SetPositions(new Vector3[] {
-                    new Vector3(-0.4506806f, 0.2f, 3.674831f),
-                    new Vector3(-2.346078f, 0.2f, 1.282281f),
-                    new Vector3(5f, 0.2f, 5f),
-                });
+                //var temp = Instantiate(mLine.gameObject, mLine.transform.parent);
+                //var line = temp.GetComponent<LineRenderer>();
+                //temp.SetActive(true);
+                //line.positionCount = 3;
+                //line.SetPositions(new Vector3[] {
+                //    new Vector3(-0.4506806f, 0.2f, 3.674831f),
+                //    new Vector3(-2.346078f, 0.2f, 1.282281f),
+                //    new Vector3(5f, 0.2f, 5f),
+                //});
 
-                temp = Instantiate(mLine.gameObject, mLine.transform.parent);
-                line = temp.GetComponent<LineRenderer>();
-                temp.SetActive(true);
-                line.positionCount = 3;
-                line.SetPositions(new Vector3[] {
-                    new Vector3(-0.4506806f, 0.2f, 3.674831f),
-                    new Vector3(-5f, 0.2f, 5f),
-                    new Vector3(-2.346078f, 0.2f, 1.282281f),
-                });
+                //temp = Instantiate(mLine.gameObject, mLine.transform.parent);
+                //line = temp.GetComponent<LineRenderer>();
+                //temp.SetActive(true);
+                //line.positionCount = 3;
+                //line.SetPositions(new Vector3[] {
+                //    new Vector3(-0.4506806f, 0.2f, 3.674831f),
+                //    new Vector3(-5f, 0.2f, 5f),
+                //    new Vector3(-2.346078f, 0.2f, 1.282281f),
+                //});
 
-                temp = Instantiate(mLine.gameObject, mLine.transform.parent);
-                line = temp.GetComponent<LineRenderer>();
-                temp.SetActive(true);
-                line.positionCount = 3;
-                line.SetPositions(new Vector3[] {
-                    new Vector3(-2.346078f, 0.2f, 1.282281f),
-                    new Vector3(3.526545f, 0.2f, -3.036738f),
-                    new Vector3(3.122607f, 0.2f, 0.3811913f),
-                });
+                //temp = Instantiate(mLine.gameObject, mLine.transform.parent);
+                //line = temp.GetComponent<LineRenderer>();
+                //temp.SetActive(true);
+                //line.positionCount = 3;
+                //line.SetPositions(new Vector3[] {
+                //    new Vector3(-2.346078f, 0.2f, 1.282281f),
+                //    new Vector3(3.526545f, 0.2f, -3.036738f),
+                //    new Vector3(3.122607f, 0.2f, 0.3811913f),
+                //});
 
-                temp = Instantiate(mLine.gameObject, mLine.transform.parent);
-                line = temp.GetComponent<LineRenderer>();
-                temp.SetActive(true);
-                line.positionCount = 3;
-                line.SetPositions(new Vector3[] {
-                    new Vector3(-2.346078f, 0.2f, 1.282281f),
-                    new Vector3(3.122607f, 0.2f, 0.3811913f),
-                    new Vector3(5f, 0.2f, 5f),
-                });
+                //temp = Instantiate(mLine.gameObject, mLine.transform.parent);
+                //line = temp.GetComponent<LineRenderer>();
+                //temp.SetActive(true);
+                //line.positionCount = 3;
+                //line.SetPositions(new Vector3[] {
+                //    new Vector3(-2.346078f, 0.2f, 1.282281f),
+                //    new Vector3(3.122607f, 0.2f, 0.3811913f),
+                //    new Vector3(5f, 0.2f, 5f),
+                //});
 
-                temp = Instantiate(mLine.gameObject, mLine.transform.parent);
-                line = temp.GetComponent<LineRenderer>();
-                temp.SetActive(true);
-                line.positionCount = 3;
-                line.SetPositions(new Vector3[] {
-                    new Vector3(-2.346078f, 0.2f, 1.282281f),
-                    new Vector3(-5f, 0.2f, 5f),
-                    new Vector3(-5f, 0.2f, -5f),
-                });
+                //temp = Instantiate(mLine.gameObject, mLine.transform.parent);
+                //line = temp.GetComponent<LineRenderer>();
+                //temp.SetActive(true);
+                //line.positionCount = 3;
+                //line.SetPositions(new Vector3[] {
+                //    new Vector3(-2.346078f, 0.2f, 1.282281f),
+                //    new Vector3(-5f, 0.2f, 5f),
+                //    new Vector3(-5f, 0.2f, -5f),
+                //});
 
-                temp = Instantiate(mLine.gameObject, mLine.transform.parent);
-                line = temp.GetComponent<LineRenderer>();
-                temp.SetActive(true);
-                line.positionCount = 3;
-                line.SetPositions(new Vector3[] {
-                    new Vector3(-0.9167625f, 0.2f, -3.720324f),
-                    new Vector3(-2.346078f, 0.2f, 1.282281f),
-                    new Vector3(-5f, 0.2f, -5f),
-                });
+                //temp = Instantiate(mLine.gameObject, mLine.transform.parent);
+                //line = temp.GetComponent<LineRenderer>();
+                //temp.SetActive(true);
+                //line.positionCount = 3;
+                //line.SetPositions(new Vector3[] {
+                //    new Vector3(-0.9167625f, 0.2f, -3.720324f),
+                //    new Vector3(-2.346078f, 0.2f, 1.282281f),
+                //    new Vector3(-5f, 0.2f, -5f),
+                //});
 
-                temp = Instantiate(mLine.gameObject, mLine.transform.parent);
-                line = temp.GetComponent<LineRenderer>();
-                temp.SetActive(true);
-                line.positionCount = 3;
-                line.SetPositions(new Vector3[] {
-                    new Vector3(-0.9167625f, 0.2f, -3.720324f),
-                    new Vector3(3.526545f, 0.2f, -3.036738f),
-                    new Vector3(-2.346078f, 0.2f, 1.282281f),
-                });
+                //temp = Instantiate(mLine.gameObject, mLine.transform.parent);
+                //line = temp.GetComponent<LineRenderer>();
+                //temp.SetActive(true);
+                //line.positionCount = 3;
+                //line.SetPositions(new Vector3[] {
+                //    new Vector3(-0.9167625f, 0.2f, -3.720324f),
+                //    new Vector3(3.526545f, 0.2f, -3.036738f),
+                //    new Vector3(-2.346078f, 0.2f, 1.282281f),
+                //});
             }
 
             //OnRefresh();
