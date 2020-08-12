@@ -98,29 +98,103 @@ namespace mmc {
             };
             mPathCore.Init(poly);
 
-            var pile0 = mPathCore.Insert(new Vector2(-1.413916f, -0.2091784f), 1);
-            var pile1 = mPathCore.Insert(new Vector2(0.3882648f, -0.8927647f), 1);
-            var pile2 = mPathCore.Insert(new Vector2(3.43333f, -1.607423f), 1);
-            var pile3 = mPathCore.Insert(new Vector2(3.433331f, -0.08489053f), 1);
-            var pile4 = mPathCore.Insert(new Vector2(1.879725f, 2.680524f), 1);
-            var pile5 = mPathCore.Insert(new Vector2(-1.320699f, 2.214444f), 1);
-            mPathCore.Remove(pile4);
-            var pile6 = mPathCore.Insert(new Vector2(2.345805f, 3.395184f), 1);
-            mPathCore.Remove(pile6);
-            var pile7 = mPathCore.Insert(new Vector2(3.402257f, 3.79912f), 1);
-            mPathCore.Remove(pile5);
-            var pile8 = mPathCore.Insert(new Vector2(-0.8856905f, 1.624075f), 1);
-            mPathCore.Remove(pile8);
-            var pile9 = mPathCore.Insert(new Vector2(0.01540029f, 0.9715594f), 1);
-            mPathCore.Remove(pile9);
-            var pile10 = mPathCore.Insert(new Vector2(1.631148f, 0.2879747f), 1);
-            mPathCore.Remove(pile10);
-            var pile11 = mPathCore.Insert(new Vector2(4.147988f, 0.6297684f), 1);
-            mPathCore.Remove(pile11);
-            var pile12 = mPathCore.Insert(new Vector2(4.986933f, 1.344424f), 1);
-            mPathCore.Remove(pile2);
+            //var pile0 = mPathCore.Insert(new Vector2(-1.413916f, -0.2091784f), 1);
+            //var pile1 = mPathCore.Insert(new Vector2(0.3882648f, -0.8927647f), 1);
+            //var pile2 = mPathCore.Insert(new Vector2(3.43333f, -1.607423f), 1);
+            //var pile3 = mPathCore.Insert(new Vector2(3.433331f, -0.08489053f), 1);
+            //var pile4 = mPathCore.Insert(new Vector2(1.879725f, 2.680524f), 1);
+            //var pile5 = mPathCore.Insert(new Vector2(-1.320699f, 2.214444f), 1);
+            //mPathCore.Remove(pile4);
+            //var pile6 = mPathCore.Insert(new Vector2(2.345805f, 3.395184f), 1);
+            //mPathCore.Remove(pile6);
+            //var pile7 = mPathCore.Insert(new Vector2(3.402257f, 3.79912f), 1);
+            //mPathCore.Remove(pile5);
+            //var pile8 = mPathCore.Insert(new Vector2(-0.8856905f, 1.624075f), 1);
+            //mPathCore.Remove(pile8);
+            //var pile9 = mPathCore.Insert(new Vector2(0.01540029f, 0.9715594f), 1);
+            //mPathCore.Remove(pile9);
+            //var pile10 = mPathCore.Insert(new Vector2(1.631148f, 0.2879747f), 1);
+            //mPathCore.Remove(pile10);
+            //var pile11 = mPathCore.Insert(new Vector2(4.147988f, 0.6297684f), 1);
+            //mPathCore.Remove(pile11);
+            //var pile12 = mPathCore.Insert(new Vector2(4.986933f, 1.344424f), 1);
+            //mPathCore.Remove(pile2);
             //var pile13 = mPathCore.Insert(new Vector2(3.992626f, -2.197792f), 1);
-            OnRefresh();
+
+
+            {
+                var temp = Instantiate(mLine.gameObject, mLine.transform.parent);
+                var line = temp.GetComponent<LineRenderer>();
+                temp.SetActive(true);
+                line.positionCount = 3;
+                line.SetPositions(new Vector3[] {
+                    new Vector3(-0.4506806f, 0.2f, 3.674831f),
+                    new Vector3(-2.346078f, 0.2f, 1.282281f),
+                    new Vector3(5f, 0.2f, 5f),
+                });
+
+                temp = Instantiate(mLine.gameObject, mLine.transform.parent);
+                line = temp.GetComponent<LineRenderer>();
+                temp.SetActive(true);
+                line.positionCount = 3;
+                line.SetPositions(new Vector3[] {
+                    new Vector3(-0.4506806f, 0.2f, 3.674831f),
+                    new Vector3(-5f, 0.2f, 5f),
+                    new Vector3(-2.346078f, 0.2f, 1.282281f),
+                });
+
+                temp = Instantiate(mLine.gameObject, mLine.transform.parent);
+                line = temp.GetComponent<LineRenderer>();
+                temp.SetActive(true);
+                line.positionCount = 3;
+                line.SetPositions(new Vector3[] {
+                    new Vector3(-2.346078f, 0.2f, 1.282281f),
+                    new Vector3(3.526545f, 0.2f, -3.036738f),
+                    new Vector3(3.122607f, 0.2f, 0.3811913f),
+                });
+
+                temp = Instantiate(mLine.gameObject, mLine.transform.parent);
+                line = temp.GetComponent<LineRenderer>();
+                temp.SetActive(true);
+                line.positionCount = 3;
+                line.SetPositions(new Vector3[] {
+                    new Vector3(-2.346078f, 0.2f, 1.282281f),
+                    new Vector3(3.122607f, 0.2f, 0.3811913f),
+                    new Vector3(5f, 0.2f, 5f),
+                });
+
+                temp = Instantiate(mLine.gameObject, mLine.transform.parent);
+                line = temp.GetComponent<LineRenderer>();
+                temp.SetActive(true);
+                line.positionCount = 3;
+                line.SetPositions(new Vector3[] {
+                    new Vector3(-2.346078f, 0.2f, 1.282281f),
+                    new Vector3(-5f, 0.2f, 5f),
+                    new Vector3(-5f, 0.2f, -5f),
+                });
+
+                temp = Instantiate(mLine.gameObject, mLine.transform.parent);
+                line = temp.GetComponent<LineRenderer>();
+                temp.SetActive(true);
+                line.positionCount = 3;
+                line.SetPositions(new Vector3[] {
+                    new Vector3(-0.9167625f, 0.2f, -3.720324f),
+                    new Vector3(-2.346078f, 0.2f, 1.282281f),
+                    new Vector3(-5f, 0.2f, -5f),
+                });
+
+                temp = Instantiate(mLine.gameObject, mLine.transform.parent);
+                line = temp.GetComponent<LineRenderer>();
+                temp.SetActive(true);
+                line.positionCount = 3;
+                line.SetPositions(new Vector3[] {
+                    new Vector3(-0.9167625f, 0.2f, -3.720324f),
+                    new Vector3(3.526545f, 0.2f, -3.036738f),
+                    new Vector3(-2.346078f, 0.2f, 1.282281f),
+                });
+            }
+
+            //OnRefresh();
         }
 
         void Update()

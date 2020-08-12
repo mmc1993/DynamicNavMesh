@@ -163,29 +163,32 @@ namespace mmc {
 
             void StripEdges(List<Edge> merge)
             {
-                var index = 0;
-                var tedge = new Edge();
-                while (merge.Count != 0)
+                var edge = new Edge();
+                var next = false;
+                for (var i = 0; i != merge.Count;)
                 {
-                    var links = new List<Edge> { merge[index] };
-                    for (var i = 0; i != merge.Count; ++i)
+                    var links = new List<Edge>{ merge[i] };
+                    for (var j = 1; j != merge.Count; ++j)
                     {
-                        var e0 = links[Math.Index(       -1, links.Count)];
-                        var e1 = merge[Math.Index(index + i, merge.Count)];
+                        var e0 = links[Math.Index(   -1, links.Count)];
+                        var e1 = merge[Math.Index(i + j, merge.Count)];
                         var ab = e0.mB.mOrigin - e0.mA.mOrigin;
                         var cd = e1.mB.mOrigin - e1.mA.mOrigin;
-                        var isNext = Math.V2Cross(ab, cd) >= 0;
-                        if (isNext)
+                        next = Math.V2Cross(ab, cd) >= 0;
+                        if (next)
                         {
-                            links.Add(e1);
-                            tedge.mA = e1.mB;
-                            tedge.mB = e0.mA;
-                            links.Add(tedge);
-                            isNext = merge.Find(m => {
+                            var v0 = links[0].mA.mOrigin - e1.mB.mOrigin;
+                            var v1 = links[0].mB.mOrigin - links[0].mA.mOrigin;
+                            next = Math.V2Cross(v0, v1) >= 0;
+                        }
+                        if (next)
+                        {
+                            links.Add(e1); edge.mA = e1.mB; edge.mB = e0.mA; links.Add(edge);
+                            next = merge.Find(m => {
                                 return links.Find(l => m.mA == l.mA || m.mA == l.mB) == null
                                     && Math.IsContainsConvex(links, m.mA, e => e.mA.mOrigin);
                             }) == null;
-                            if (isNext)
+                            if (next)
                             {
                                 links.RemoveAt(links.Count - 1);
                             }
@@ -196,22 +199,19 @@ namespace mmc {
                             }
                         }
 
-                        if (isNext) { continue; }
+                        if (next) { continue; }
 
                         if (links.Count == 1)
                         {
-                            links.Clear(); ++index;
+                            Debug.Assert(j == 1);links.Clear();
+                            i = Math.Index(i + j, merge.Count);
                         }
                         else
                         {
-                            links.Add(new Edge {
-                                mA = e1.mB,
-                                mB = e0.mA,
-                            });
+                            links.Add(new Edge { mA = e1.mA, mB = e0.mA, });
 
-                            merge.Insert(i, new Edge {
-                                mA = links[0].mA, mB = e1.mB
-                            });
+                            merge.Insert(Math.Index(i + j, merge.Count), 
+                                new Edge { mA = links[0].mA, mB = e1.mA });
 
                             var mesh = new Mesh {
                                 mEdges = links, mPiles = new List<Pile>()
@@ -222,11 +222,86 @@ namespace mmc {
                                 mesh.mPiles.Add(e.mA); merge.Remove(e);
                             }
 
-                            LinkMesh(mesh);
+                            LinkMesh(mesh); i = Math.Index(i, merge.Count);
                         }
                         break;
                     }
+
+                    if (next)
+                    {
+                        var mesh = new Mesh {
+                            mEdges = links, mPiles = new List<Pile>(),
+                        };
+
+                        links.ForEach(e => mesh.mPiles.Add(e.mA));
+
+                        LinkMesh(mesh); break;
+                    }
                 }
+
+                //var index = 0;
+                //while (merge.Count != 0)
+                //{
+                //    var links = new List<Edge> { merge[index] };
+                //    for (var i = 0; i != merge.Count; ++i)
+                //    {
+                //        var e0 = links[Math.Index(       -1, links.Count)];
+                //        var e1 = merge[Math.Index(index + i, merge.Count)];
+                //        var ab = e0.mB.mOrigin - e0.mA.mOrigin;
+                //        var cd = e1.mB.mOrigin - e1.mA.mOrigin;
+                //        var isNext = Math.V2Cross(ab, cd) >= 0;
+                //        if (isNext)
+                //        {
+                //            links.Add(e1);
+                //            tedge.mA = e1.mB;
+                //            tedge.mB = e0.mA;
+                //            links.Add(tedge);
+                //            isNext = merge.Find(m => {
+                //                return links.Find(l => m.mA == l.mA || m.mA == l.mB) == null
+                //                    && Math.IsContainsConvex(links, m.mA, e => e.mA.mOrigin);
+                //            }) == null;
+                //            if (isNext)
+                //            {
+                //                links.RemoveAt(links.Count - 1);
+                //            }
+                //            else
+                //            {
+                //                links.RemoveAt(links.Count - 1);
+                //                links.RemoveAt(links.Count - 1);
+                //            }
+                //        }
+
+                //        if (isNext) { continue; }
+
+                //        if (links.Count == 1)
+                //        {
+                //            links.Clear(); ++index;
+                //        }
+                //        else
+                //        {
+                //            links.Add(new Edge {
+                //                mA = e1.mB,
+                //                mB = e0.mA,
+                //            });
+
+                //            merge.Insert(i, new Edge {
+                //                mA = links[0].mA, mB = e1.mB
+                //            });
+
+                //            var mesh = new Mesh {
+                //                mEdges = links, mPiles = new List<Pile>()
+                //            };
+
+                //            foreach (var e in links)
+                //            {
+                //                mesh.mPiles.Add(e.mA); merge.Remove(e);
+                //            }
+
+                //            LinkMesh(mesh);
+                //        }
+                //        break;
+                //    }
+                //}
 
 
                 //if (Math.IsConvex(merge, e => e.mA.mOrigin))
