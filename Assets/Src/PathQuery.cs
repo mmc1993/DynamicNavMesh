@@ -72,8 +72,6 @@ namespace mmc {
 
             public Pile Insert(Vec2 p, float r)
             {
-                Debug.LogFormat("插入: {0}, {1}", p.x, p.y);
-
                 var meshs = FindMeshs(p);
 
                 mEdges.Clear();
@@ -340,14 +338,163 @@ namespace mmc {
                 return mMeshs.FindAll(mesh => Math.IsContainsConvex(mesh.mPiles, point, v => v.mOrigin));
             }
 
-            private readonly LinkedList<Edge> mLinks = new LinkedList<Edge>();  //  用于删除节点时
+            private readonly LinkedList<Edge> mLinks = new LinkedList<Edge>();
             private readonly List<Edge> mEdges = new List<Edge>();
             private readonly List<Mesh> mMeshs = new List<Mesh>();
         }
 
         //  路径搜索
         public class PathQuery {
+            class WayPoint : System.IComparable {
+                public WayPoint mParent;
+                public Mesh mMesh;
+                public float F;
+                public float T;
+                public float S { get => F + T; }
 
+                public int CompareTo(object obj)
+                {
+                    var v = obj as WayPoint;
+                    return S  < v.S ? -1
+                         : S == v.S ?  0 : 1;
+                }
+            }
+
+            public bool Find(List<Mesh> meshs, Vec2 fCoord, Vec2 tCoord, float radius, List<Vec2> path)
+            {
+                var fMesh = Find(meshs, fCoord);
+                var tMesh = Find(meshs, tCoord);
+                if (fMesh == null || tMesh == null)
+                {
+                    return false;
+                }
+
+                if (fMesh == tMesh)
+                {
+                    path.Add(tCoord);
+                }
+                else
+                {
+                    mFCoord = fCoord;
+                    mTCoord = tCoord;
+                    mResult      .Clear();
+                    mClosed      .Clear();
+                    mOpened.Get().Clear();
+                    mOpened.Push(new WayPoint { F = 1, 
+                                                T = CalcT(fCoord),
+                                                mMesh = fMesh, });
+                    Find(tMesh, radius); GenNav(); Result(radius, path);
+                }
+                return path.Count != 0;
+            }
+
+            bool Find(Mesh tMesh, float radius)
+            {
+                while (!mOpened.Empty())
+                {
+                    var top = mOpened.Pop();
+                    mClosed.Add(top);
+
+                    if (top.mMesh == tMesh)
+                    {
+                        return true;
+                    }
+
+                    Link(top, radius);
+                }
+                return false;
+            }
+
+            void Link(WayPoint wp, float radius)
+            {
+                for (var i = 0; i != wp.mMesh.mEdges.Count; ++i)
+                {
+                    var edge = wp.mMesh.mEdges[i];
+                    if (edge.mLink == null) { continue; }
+                    var d = edge.mB.mOrigin - edge.mA.mOrigin;
+                    var r0 = edge.mA.mRadius * edge.mA.mRadius;
+                    var r1 = edge.mB.mRadius * edge.mB.mRadius;
+                    var l = d.SqrMagnitude() - r0 - r1;
+                    if (radius * radius <= l && 
+                        mOpened.Get().Find(v => v.mMesh == edge.mLink.mSelf) == null && 
+                        mClosed      .Find(v => v.mMesh == edge.mLink.mSelf) == null)
+                    {
+                        mOpened.Push(new WayPoint { mParent = wp,
+                                                    F = CalcF(edge.mSelf.mOrigin, 
+                                                              edge.mLink.mSelf.mOrigin) + wp.F,
+                                                    T = CalcT(edge.mLink.mSelf.mOrigin), 
+                                                    mMesh = edge.mLink.mSelf, });
+                    }
+                }
+            }
+
+            void GenNav()
+            {
+                var wp = mClosed[mClosed.Count - 1];
+                while (wp != null)
+                {
+                    mResult.Add(wp.mMesh); wp = wp.mParent;
+                }
+            }
+
+            void Result(float raduls, List<Vec2> path)
+            {
+                path.Add(mFCoord);
+                for (var i = mResult.Count - 1; i != 0; --i)
+                {
+                    var mesh = mResult[i    ];
+                    var next = mResult[i - 1];
+                    var edge = mesh.mEdges.Find(e => e.mLink?.mSelf == next);
+                    var fCoord = path[path.Count - 1];
+                    var tCoord = i > 1
+                               ? mResult[i - 2].mOrigin
+                               : mTCoord;
+
+                    var len = (edge.mB.mOrigin - edge.mA.mOrigin).magnitude;
+                    var e0 = Vec2.Lerp(edge.mA.mOrigin, edge.mB.mOrigin, edge.mA.mRadius / len);
+                    var e1 = Vec2.Lerp(edge.mB.mOrigin, edge.mA.mOrigin, edge.mB.mRadius / len);
+                    var v0 = tCoord - fCoord;
+                    var v1 = e0 - fCoord;
+                    var v2 = e1 - fCoord;
+                    if      (Math.V2Cross(v0, v1) > 0)
+                    {
+                        path.Add(e0);
+                        //  优化路径
+                    }
+                    else if (Math.V2Cross(v0, v2) < 0)
+                    {
+                        path.Add(e1);
+                        //  优化路径
+                    }
+                }
+                path.Add(mTCoord);
+            }
+
+            float CalcF(Vec2 fCoord, Vec2 tCoord)
+            {
+                return (tCoord - fCoord).magnitude;
+            }
+
+            float CalcT(Vec2 tCoord)
+            {
+                return (mTCoord - tCoord).magnitude;
+            }
+
+            Mesh Find(List<Mesh> meshs, Vec2 coord)
+            {
+                return meshs.Find(mesh => Math.IsContainsConvex(mesh.mPiles, coord, p => p.mOrigin));
+            }
+
+            public List<Mesh> GetMeshs()
+            {
+                return mResult;
+            }
+
+            Queue<WayPoint> mOpened = new Queue<WayPoint>();
+            List<WayPoint>  mClosed = new List<WayPoint>();
+            List<Mesh>      mResult = new List<Mesh>();
+            Vec2 mTCoord;
+            Vec2 mFCoord;
         }
 
         public void Init(List<Vec2> list)
@@ -368,6 +515,16 @@ namespace mmc {
         public List<Mesh> GetMeshs()
         {
             return mBuild.GetMeshs();
+        }
+
+        public List<Mesh> GetResult()
+        {
+            return mQuery.GetMeshs();
+        }
+
+        public bool Find(Vec2 fCoord, Vec2 tCoord, float radius, List<Vec2> path)
+        {
+            return mQuery.Find(mBuild.GetMeshs(), fCoord, tCoord, radius, path);
         }
 
         PathBuild mBuild = new PathBuild();
