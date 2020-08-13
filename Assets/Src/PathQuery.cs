@@ -347,6 +347,7 @@ namespace mmc {
         public class PathQuery {
             class WayPoint : System.IComparable {
                 public WayPoint mParent;
+                public Vec2 mOrigin;
                 public Mesh mMesh;
                 public float F;
                 public float T;
@@ -380,8 +381,9 @@ namespace mmc {
                     mResult      .Clear();
                     mClosed      .Clear();
                     mOpened.Get().Clear();
-                    mOpened.Push(new WayPoint { F = 1, 
+                    mOpened.Push(new WayPoint { F = 0,
                                                 T = CalcT(fCoord),
+                                                mOrigin = fCoord,
                                                 mMesh = fMesh, });
                     Find(tMesh, radius); GenNav(); Result(radius, path);
                 }
@@ -411,7 +413,7 @@ namespace mmc {
                 {
                     var edge = wp.mMesh.mEdges[i];
                     if (edge.mLink == null) { continue; }
-                    var d = edge.mB.mOrigin - edge.mA.mOrigin;
+                    var d  = edge.mB.mOrigin - edge.mA.mOrigin;
                     var r0 = edge.mA.mRadius * edge.mA.mRadius;
                     var r1 = edge.mB.mRadius * edge.mB.mRadius;
                     var l = d.SqrMagnitude() - r0 - r1;
@@ -420,9 +422,9 @@ namespace mmc {
                         mClosed      .Find(v => v.mMesh == edge.mLink.mSelf) == null)
                     {
                         mOpened.Push(new WayPoint { mParent = wp,
-                                                    F = CalcF(edge.mSelf.mOrigin, 
-                                                              edge.mLink.mSelf.mOrigin) + wp.F,
-                                                    T = CalcT(edge.mLink.mSelf.mOrigin), 
+                                                    F = CalcF(wp, edge.mLink.mSelf.mOrigin) + wp.F,
+                                                    T = CalcT(edge.mLink.mSelf.mOrigin),
+                                                    mOrigin = edge.mLink.mSelf.mOrigin,
                                                     mMesh = edge.mLink.mSelf, });
                     }
                 }
@@ -446,13 +448,11 @@ namespace mmc {
                     var next = mResult[i - 1];
                     var edge = mesh.mEdges.Find(e => e.mLink?.mSelf == next);
                     var fCoord = path[path.Count - 1];
-                    var tCoord = i > 1
-                               ? mResult[i - 2].mOrigin
-                               : mTCoord;
+                    var tCoord = i > 1 ? mResult[i - 2].mOrigin : mTCoord;
 
                     var len = (edge.mB.mOrigin - edge.mA.mOrigin).magnitude;
-                    var e0 = Vec2.Lerp(edge.mA.mOrigin, edge.mB.mOrigin, edge.mA.mRadius / len);
-                    var e1 = Vec2.Lerp(edge.mB.mOrigin, edge.mA.mOrigin, edge.mB.mRadius / len);
+                    var e0 = Vec2.Lerp(edge.mA.mOrigin, edge.mB.mOrigin, (raduls + edge.mA.mRadius) / len);
+                    var e1 = Vec2.Lerp(edge.mB.mOrigin, edge.mA.mOrigin, (raduls + edge.mB.mRadius) / len);
                     var v0 = tCoord - fCoord;
                     var v1 = e0 - fCoord;
                     var v2 = e1 - fCoord;
@@ -470,9 +470,10 @@ namespace mmc {
                 path.Add(mTCoord);
             }
 
-            float CalcF(Vec2 fCoord, Vec2 tCoord)
+            float CalcF(WayPoint wp, Vec2 tCoord)
             {
-                return (tCoord - fCoord).magnitude;
+                var prev = wp.mParent != null? wp.mParent.mOrigin: wp.mOrigin;
+                return (tCoord - Vec2.Lerp(prev, wp.mOrigin, 0.5f)).magnitude;
             }
 
             float CalcT(Vec2 tCoord)
