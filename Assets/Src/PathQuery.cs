@@ -412,21 +412,25 @@ namespace mmc {
                 for (var i = 0; i != wp.mMesh.mEdges.Count; ++i)
                 {
                     var edge = wp.mMesh.mEdges[i];
+                    //  链接边不可走
                     if (edge.mLink == null) { continue; }
+                    //  出口宽度不够
                     var d  = edge.mB.mOrigin - edge.mA.mOrigin;
                     var r0 = edge.mA.mRadius * edge.mA.mRadius;
                     var r1 = edge.mB.mRadius * edge.mB.mRadius;
-                    var l = d.SqrMagnitude() - r0 - r1;
-                    if (radius * radius <= l && 
-                        mOpened.Get().Find(v => v.mMesh == edge.mLink.mSelf) == null && 
-                        mClosed      .Find(v => v.mMesh == edge.mLink.mSelf) == null)
+                    if (radius * radius > (d.SqrMagnitude() - r0 - r1) ||
+                        mOpened.Get().Find(v => v.mMesh == edge.mLink.mSelf) != null ||
+                        mClosed      .Find(v => v.mMesh == edge.mLink.mSelf) != null)
                     {
-                        mOpened.Push(new WayPoint { mParent = wp,
-                                                    F = CalcF(wp, edge.mLink.mSelf.mOrigin) + wp.F,
-                                                    T = CalcT(edge.mLink.mSelf.mOrigin),
-                                                    mOrigin = edge.mLink.mSelf.mOrigin,
-                                                    mMesh = edge.mLink.mSelf, });
+                        continue;
                     }
+                    var e0 = Vec2.Lerp(edge.mA.mOrigin, edge.mB.mOrigin, edge.mA.mRadius / d.magnitude);
+                    var e1 = Vec2.Lerp(edge.mB.mOrigin, edge.mA.mOrigin, edge.mB.mRadius / d.magnitude);
+                    var p  = Vec2.Lerp(e0, e1, 0.5f);
+                    mOpened.Push(new WayPoint { mParent = wp,
+                                                F = CalcF(wp, p) + wp.F,
+                                                T = CalcT(p), mOrigin = p,
+                                                mMesh = edge.mLink.mSelf, });
                 }
             }
 
@@ -472,8 +476,7 @@ namespace mmc {
 
             float CalcF(WayPoint wp, Vec2 tCoord)
             {
-                var prev = wp.mParent != null? wp.mParent.mOrigin: wp.mOrigin;
-                return (tCoord - Vec2.Lerp(prev, wp.mOrigin, 0.5f)).magnitude;
+                return (wp.mOrigin - tCoord).magnitude;
             }
 
             float CalcT(Vec2 tCoord)

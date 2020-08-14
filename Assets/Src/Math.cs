@@ -409,6 +409,27 @@ namespace mmc {
             }
         }
 
+        //  点到线段最近距离
+        public static Vector2 GetDistance(Vector2 point, Edge edge)
+        {
+            var p0p1 = edge.P1 - edge.P0;
+            var p0p  = point - edge.P0;
+            var p1p  = point - edge.P1;
+            if      (Vector2.Dot(p0p, p0p1) <= 0)
+            {
+                return -p0p;
+            }
+            else if (Vector2.Dot(p1p, p0p1) >= 0)
+            {
+                return -p1p;
+            }
+            var scale = Vector2.Dot(p0p, p0p1) / p0p1.magnitude;
+            var cross = p0p1.normalized * scale;
+            cross.x += edge.P0.x;
+            cross.y += edge.P0.y;
+            return cross - point;
+        }
+
         //  计算中点
         public static Vector2 CalcCenterCoord(List<Vector2> list)
         {
