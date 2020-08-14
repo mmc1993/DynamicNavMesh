@@ -427,6 +427,7 @@ namespace mmc {
                     var e0 = Vec2.Lerp(edge.mA.mOrigin, edge.mB.mOrigin, edge.mA.mRadius / d.magnitude);
                     var e1 = Vec2.Lerp(edge.mB.mOrigin, edge.mA.mOrigin, edge.mB.mRadius / d.magnitude);
                     var p  = Vec2.Lerp(e0, e1, 0.5f);
+                    if (!CheckWidth(wp, p, radius)) { continue; }
                     mOpened.Push(new WayPoint { mParent = wp,
                                                 F = CalcF(wp, p) + wp.F,
                                                 T = CalcT(p), mOrigin = p,
@@ -472,6 +473,27 @@ namespace mmc {
                     }
                 }
                 path.Add(mTCoord);
+            }
+
+            //  判断网格宽度是否足够
+            bool CheckWidth(WayPoint wp, Vec2 tCoord, float radius)
+            {
+                //for (var i = 0; i != wp.mMesh.mPiles.Count; ++i)
+                //{
+                //    var pile = wp.mMesh.mPiles[i];
+                //    for (var j = 0; j != wp.mMesh.mEdges.Count; ++j)
+                //    {
+                //        var edge = wp.mMesh.mEdges[j];
+                //        if (pile == edge.mA || pile == edge.mB)
+                //        {
+                //            continue;
+                //        }
+                //        Math.Edge e;
+                //        e.P0 = edge.mA.mOrigin;
+                //        e.P1 = edge.mB.mOrigin;
+                //    }
+                //}
+                return true;
             }
 
             float CalcF(WayPoint wp, Vec2 tCoord)
