@@ -19,6 +19,15 @@ namespace mmc {
             public Mesh mSelf;              //  自己区域
             public Edge mLink;
 
+            public Vec2 Origin {
+                get {
+                    var n = (mB.mOrigin - mA.mOrigin).normalized;
+                    var a = mA.mOrigin + n * mA.mRadius;
+                    var b = mB.mOrigin - n * mB.mRadius;
+                    return Vec2.Lerp(a, b, 0.5f);
+                } 
+            }
+
             public bool IsEqual(Edge edge)
             {
                 Math.Edge e0, e1;
@@ -348,10 +357,10 @@ namespace mmc {
             class WayPoint : System.IComparable {
                 public WayPoint mParent;
                 public Vec2 mOrigin;
-                public Mesh mMesh;
+                public Edge mEdge;
                 public float F;
                 public float T;
-                public float S { get => F + T; }
+                public float S { get => F * 0.5f + T; }
 
                 public int CompareTo(object obj)
                 {
@@ -370,68 +379,119 @@ namespace mmc {
                     return false;
                 }
 
+                mEdges.Clear();
+                mFCoord = fCoord;
+                mTCoord = tCoord;
+                mRadius = radius;
                 if (fMesh == tMesh)
                 {
-                    path.Add(tCoord);
+                    if (IsCanLink(tMesh, fCoord, tCoord))
+                    {
+                        path.Add(tCoord);
+                    }
                 }
                 else
                 {
-                    mFCoord = fCoord;
-                    mTCoord = tCoord;
-                    mResult      .Clear();
                     mClosed      .Clear();
                     mOpened.Get().Clear();
-                    mOpened.Push(new WayPoint { F = 0,
-                                                T = CalcT(fCoord),
-                                                mOrigin = fCoord,
-                                                mMesh = fMesh, });
-                    Find(tMesh, radius); GenNav(); Result(radius, path);
+                    foreach (var edge in fMesh.mEdges)
+                    {
+                        var eCoord  = edge.Origin;
+                        if (IsCanGoto(edge) && IsCanLink(fMesh, fCoord, eCoord))
+                        {
+                            mOpened.Push(new WayPoint {
+                                T = CalcT(eCoord),
+                                F = CalcF(eCoord, fCoord),
+                                mOrigin = eCoord, mEdge = edge,
+                            });
+                        }
+                    }
+
+                    Find(tMesh);
+                    GenNav();
+                    Result(radius, path);
                 }
                 return path.Count != 0;
             }
 
-            bool Find(Mesh tMesh, float radius)
+            //  判断Mesh中的两点是否可连通
+            bool IsCanLink(Mesh mesh, Vec2 fCoord, Vec2 tCoord)
+            {
+                Math.Edge e;
+                Math.Edge s;
+                s.P0 = fCoord;
+                s.P1 = tCoord;
+                foreach (var pile in mesh.mPiles)
+                {
+                    foreach (var edge in mesh.mEdges)
+                    {
+                        if (pile == edge.mA || pile == edge.mB) { continue; }
+                        e.P0 = edge.mA.mOrigin;
+                        e.P1 = edge.mB.mOrigin;
+                        var d = Math.GetDistance(pile.mOrigin, e);
+
+                        var n = d.normalized;
+                        e.P0 = pile.mOrigin + d;
+                        e.P1 = pile.mOrigin + n * pile.mRadius;
+                        if (!Math.IsCrossSeg(s, e)) { continue; }
+
+                        var r = pile.mRadius 
+                              * pile.mRadius 
+                              + mRadius * mRadius;
+                        if (d.sqrMagnitude < r) { return false; }
+                    }
+                }
+                return true;
+            }
+
+            //  判断是否可通过Edge
+            bool IsCanGoto(Edge edge)
+            {
+                if (edge.mLink == null) { return false; }
+                var d = edge.mA.mOrigin - edge.mB.mOrigin;
+                var r = edge.mA.mRadius
+                      + edge.mB.mRadius
+                      + mRadius;
+                return d.sqrMagnitude >= r * r;
+            }
+
+            bool Find(Mesh tMesh)
             {
                 while (!mOpened.Empty())
                 {
                     var top = mOpened.Pop();
                     mClosed.Add(top);
 
-                    if (top.mMesh == tMesh)
+                    if (top.mEdge.mLink.mSelf == tMesh)
                     {
-                        return true;
+                        if (IsCanLink(tMesh, top.mOrigin, mTCoord)) { return true; }
                     }
 
-                    Link(top, radius);
+                    Link(top);
                 }
                 return false;
             }
 
-            void Link(WayPoint wp, float radius)
+            void Link(WayPoint wp)
             {
-                for (var i = 0; i != wp.mMesh.mEdges.Count; ++i)
+                if (wp.mEdge.mLink == null) { return; }
+
+                foreach (var edge in wp.mEdge.mLink.mSelf.mEdges)
                 {
-                    var edge = wp.mMesh.mEdges[i];
-                    //  链接边不可走
-                    if (edge.mLink == null) { continue; }
-                    //  出口宽度不够
-                    var d  = edge.mB.mOrigin - edge.mA.mOrigin;
-                    var r0 = edge.mA.mRadius * edge.mA.mRadius;
-                    var r1 = edge.mB.mRadius * edge.mB.mRadius;
-                    if (radius * radius > (d.SqrMagnitude() - r0 - r1) ||
-                        mOpened.Get().Find(v => v.mMesh == edge.mLink.mSelf) != null ||
-                        mClosed      .Find(v => v.mMesh == edge.mLink.mSelf) != null)
+                    if (!IsCanGoto(edge) || !IsCanLink(wp.mEdge.mLink.mSelf, wp.mEdge.Origin, edge.Origin) ||
+                        mOpened.Get().Find(v => v.mEdge == edge) != null ||
+                        mClosed      .Find(v => v.mEdge == edge) != null)
                     {
                         continue;
                     }
-                    var e0 = Vec2.Lerp(edge.mA.mOrigin, edge.mB.mOrigin, edge.mA.mRadius / d.magnitude);
-                    var e1 = Vec2.Lerp(edge.mB.mOrigin, edge.mA.mOrigin, edge.mB.mRadius / d.magnitude);
-                    var p  = Vec2.Lerp(e0, e1, 0.5f);
-                    if (!CheckWidth(wp, p, radius)) { continue; }
-                    mOpened.Push(new WayPoint { mParent = wp,
-                                                F = CalcF(wp, p) + wp.F,
-                                                T = CalcT(p), mOrigin = p,
-                                                mMesh = edge.mLink.mSelf, });
+
+                    var tCoord = edge.Origin;
+                    mOpened.Push(new WayPoint { F = CalcF(tCoord, wp.mOrigin),
+                                                T = CalcT(tCoord),
+                                                mOrigin = tCoord,
+                                                mParent = wp,
+                                                mEdge = edge,
+                    });
                 }
             }
 
@@ -440,65 +500,44 @@ namespace mmc {
                 var wp = mClosed[mClosed.Count - 1];
                 while (wp != null)
                 {
-                    mResult.Add(wp.mMesh); wp = wp.mParent;
+                    mEdges.Add(wp.mEdge); wp = wp.mParent;
                 }
             }
 
             void Result(float raduls, List<Vec2> path)
             {
-                path.Add(mFCoord);
-                for (var i = mResult.Count - 1; i != 0; --i)
-                {
-                    var mesh = mResult[i    ];
-                    var next = mResult[i - 1];
-                    var edge = mesh.mEdges.Find(e => e.mLink?.mSelf == next);
-                    var fCoord = path[path.Count - 1];
-                    var tCoord = i > 1 ? mResult[i - 2].mOrigin : mTCoord;
-
-                    var len = (edge.mB.mOrigin - edge.mA.mOrigin).magnitude;
-                    var e0 = Vec2.Lerp(edge.mA.mOrigin, edge.mB.mOrigin, (raduls + edge.mA.mRadius) / len);
-                    var e1 = Vec2.Lerp(edge.mB.mOrigin, edge.mA.mOrigin, (raduls + edge.mB.mRadius) / len);
-                    var v0 = tCoord - fCoord;
-                    var v1 = e0 - fCoord;
-                    var v2 = e1 - fCoord;
-                    if      (Math.V2Cross(v0, v1) > 0)
-                    {
-                        path.Add(e0);
-                        //  优化路径
-                    }
-                    else if (Math.V2Cross(v0, v2) < 0)
-                    {
-                        path.Add(e1);
-                        //  优化路径
-                    }
-                }
-                path.Add(mTCoord);
-            }
-
-            //  判断网格宽度是否足够
-            bool CheckWidth(WayPoint wp, Vec2 tCoord, float radius)
-            {
-                //for (var i = 0; i != wp.mMesh.mPiles.Count; ++i)
+                //path.Add(mFCoord);
+                //for (var i = mEdges.Count - 1; i != 0; --i)
                 //{
-                //    var pile = wp.mMesh.mPiles[i];
-                //    for (var j = 0; j != wp.mMesh.mEdges.Count; ++j)
+                //    var mesh = mEdges[i    ];
+                //    var next = mEdges[i - 1];
+                //    var edge = mesh.mEdges.Find(e => e.mLink?.mSelf == next);
+                //    var fCoord = path[path.Count - 1];
+                //    var tCoord = i > 1 ? mEdges[i - 2].mOrigin : mTCoord;
+
+                //    var len = (edge.mB.mOrigin - edge.mA.mOrigin).magnitude;
+                //    var e0 = Vec2.Lerp(edge.mA.mOrigin, edge.mB.mOrigin, (raduls + edge.mA.mRadius) / len);
+                //    var e1 = Vec2.Lerp(edge.mB.mOrigin, edge.mA.mOrigin, (raduls + edge.mB.mRadius) / len);
+                //    var v0 = tCoord - fCoord;
+                //    var v1 = e0 - fCoord;
+                //    var v2 = e1 - fCoord;
+                //    if      (Math.V2Cross(v0, v1) > 0)
                 //    {
-                //        var edge = wp.mMesh.mEdges[j];
-                //        if (pile == edge.mA || pile == edge.mB)
-                //        {
-                //            continue;
-                //        }
-                //        Math.Edge e;
-                //        e.P0 = edge.mA.mOrigin;
-                //        e.P1 = edge.mB.mOrigin;
+                //        path.Add(e0);
+                //        //  优化路径
+                //    }
+                //    else if (Math.V2Cross(v0, v2) < 0)
+                //    {
+                //        path.Add(e1);
+                //        //  优化路径
                 //    }
                 //}
-                return true;
+                //path.Add(mTCoord);
             }
 
-            float CalcF(WayPoint wp, Vec2 tCoord)
+            float CalcF(Vec2 tCoord, Vec2 fCoord)
             {
-                return (wp.mOrigin - tCoord).magnitude;
+                return (fCoord - tCoord).magnitude;
             }
 
             float CalcT(Vec2 tCoord)
@@ -511,16 +550,17 @@ namespace mmc {
                 return meshs.Find(mesh => Math.IsContainsConvex(mesh.mPiles, coord, p => p.mOrigin));
             }
 
-            public List<Mesh> GetMeshs()
+            public List<Edge> GetFindResultEdges()
             {
-                return mResult;
+                return mEdges;
             }
 
             Queue<WayPoint> mOpened = new Queue<WayPoint>();
             List<WayPoint>  mClosed = new List<WayPoint>();
-            List<Mesh>      mResult = new List<Mesh>();
+            List<Edge>      mEdges  = new List<Edge>();
             Vec2 mTCoord;
             Vec2 mFCoord;
+            float mRadius;
         }
 
         public void Init(List<Vec2> list)
@@ -543,12 +583,12 @@ namespace mmc {
             return mBuild.GetMeshs();
         }
 
-        public List<Mesh> GetResult()
+        public List<Edge> GetFindResultEdges()
         {
-            return mQuery.GetMeshs();
+            return mQuery.GetFindResultEdges();
         }
 
-        public bool Find(Vec2 fCoord, Vec2 tCoord, float radius, List<Vec2> path)
+        public bool GetFindResultPoint(Vec2 fCoord, Vec2 tCoord, float radius, List<Vec2> path)
         {
             return mQuery.Find(mBuild.GetMeshs(), fCoord, tCoord, radius, path);
         }

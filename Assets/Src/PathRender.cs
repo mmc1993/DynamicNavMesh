@@ -55,7 +55,7 @@ namespace mmc {
 
                 Vector2 a; a.x = mFCoord.x; a.y = mFCoord.z;
                 Vector2 b; b.x = mTCoord.x; b.y = mTCoord.z;
-                mPathCore.Find(a, b, 1, list);
+                mPathCore.GetFindResultPoint(a, b, 1, list);
                 list.ForEach(v => {
                     Vector3 p;
                     p.x = v.x;
@@ -140,9 +140,9 @@ namespace mmc {
                     DrawMesh(mesh, 0.3f);
                 }
 
-                foreach (var mesh in mPathCore.GetResult())
+                foreach (var edge in mPathCore.GetFindResultEdges())
                 {
-                    DrawMesh(mesh, 1.0f);
+                    DrawEdge(edge, 1.0f);
                 }
 
                 if (mPath.Count != 0)
@@ -177,21 +177,37 @@ namespace mmc {
                 p1.z = b.mOrigin.y;
                 Gizmos.color = Color.black * colorAlpha;
                 Gizmos.DrawLine(p0, p1);
-                Gizmos.color = Color.red * colorAlpha;
 
                 Vector3 o;
                 o.x = mesh.mPiles[i].mOrigin.x;
                 o.z = mesh.mPiles[i].mOrigin.y;
                 o.y = 0.1f;
+                Gizmos.color = Color.red * colorAlpha;
                 Gizmos.DrawSphere(o, mesh.mPiles[i].mRadius);
             }
 
-            Gizmos.color = Color.white * colorAlpha;
             Vector3 p;
             p.x = mesh.mOrigin.x;
             p.z = mesh.mOrigin.y;
             p.y = 0.1f;
+            Gizmos.color = Color.white * colorAlpha;
             Gizmos.DrawSphere(p, 0.1f);
+        }
+
+        void DrawEdge(PathCore.Edge edge, float colorAlpha = 1)
+        {
+            Vector3 a;
+            Vector3 b;
+            a.x = edge.mA.mOrigin.x;
+            a.z = edge.mA.mOrigin.y;
+            a.y = 0.1f;
+
+            b.x = edge.mB.mOrigin.x;
+            b.z = edge.mB.mOrigin.y;
+            b.y = 0.1f;
+
+            Gizmos.color = Color.red * colorAlpha;
+            Gizmos.DrawLine(a, b);
         }
 
         Dictionary<Transform, PathCore.Pile> mCubeMap = new Dictionary<Transform, PathCore.Pile>();
