@@ -354,7 +354,7 @@ namespace mmc {
 
         //  路径搜索
         public class PathQuery {
-            class WayPoint : System.IComparable {
+            public class WayPoint : System.IComparable {
                 public WayPoint mParent;
                 public Vec2 mOrigin;
                 public Edge mEdge;
@@ -394,22 +394,10 @@ namespace mmc {
                 {
                     mClosed      .Clear();
                     mOpened.Get().Clear();
-                    foreach (var edge in fMesh.mEdges)
-                    {
-                        var eCoord  = edge.Origin;
-                        if (IsCanGoto(edge) && IsCanLink(fMesh, fCoord, eCoord))
-                        {
-                            mOpened.Push(new WayPoint {
-                                T = CalcT(eCoord),
-                                F = CalcF(eCoord, fCoord),
-                                mOrigin = eCoord, mEdge = edge,
-                            });
-                        }
-                    }
-
+                    Init(fMesh);
                     Find(tMesh);
-                    GenNav();
-                    Result(radius, path);
+                    BuildEdge();
+                    LinkPoint(path);
                 }
                 return path.Count != 0;
             }
@@ -455,6 +443,22 @@ namespace mmc {
                 return d.sqrMagnitude >= r * r;
             }
 
+            void Init(Mesh fMesh)
+            {
+                foreach (var edge in fMesh.mEdges)
+                {
+                    var eCoord = edge.Origin;
+                    if (IsCanGoto(edge) && IsCanLink(fMesh, mFCoord, eCoord))
+                    {
+                        mOpened.Push(new WayPoint {
+                            T = CalcT(eCoord),
+                            F = CalcF(eCoord, mFCoord),
+                            mOrigin = eCoord, mEdge = edge,
+                        });
+                    }
+                }
+            }
+
             bool Find(Mesh tMesh)
             {
                 while (!mOpened.Empty())
@@ -495,44 +499,78 @@ namespace mmc {
                 }
             }
 
-            void GenNav()
+            void BuildEdge()
             {
                 var wp = mClosed[mClosed.Count - 1];
                 while (wp != null)
                 {
-                    mEdges.Add(wp.mEdge); wp = wp.mParent;
+                    mEdges.Add(wp); wp = wp.mParent;
                 }
             }
 
-            void Result(float raduls, List<Vec2> path)
+            void LinkPoint(List<Vec2> path)
             {
-                //path.Add(mFCoord);
-                //for (var i = mEdges.Count - 1; i != 0; --i)
-                //{
-                //    var mesh = mEdges[i    ];
-                //    var next = mEdges[i - 1];
-                //    var edge = mesh.mEdges.Find(e => e.mLink?.mSelf == next);
-                //    var fCoord = path[path.Count - 1];
-                //    var tCoord = i > 1 ? mEdges[i - 2].mOrigin : mTCoord;
+                if (mEdges.Count == 0) { return; }
 
-                //    var len = (edge.mB.mOrigin - edge.mA.mOrigin).magnitude;
-                //    var e0 = Vec2.Lerp(edge.mA.mOrigin, edge.mB.mOrigin, (raduls + edge.mA.mRadius) / len);
-                //    var e1 = Vec2.Lerp(edge.mB.mOrigin, edge.mA.mOrigin, (raduls + edge.mB.mRadius) / len);
-                //    var v0 = tCoord - fCoord;
-                //    var v1 = e0 - fCoord;
-                //    var v2 = e1 - fCoord;
-                //    if      (Math.V2Cross(v0, v1) > 0)
-                //    {
-                //        path.Add(e0);
-                //        //  优化路径
-                //    }
-                //    else if (Math.V2Cross(v0, v2) < 0)
-                //    {
-                //        path.Add(e1);
-                //        //  优化路径
-                //    }
-                //}
-                //path.Add(mTCoord);
+                var aCoord = GetOutCoord(mFCoord, mEdges[0].mEdge.mA, mEdges[0].mEdge.mB);
+                var bCoord = GetOutCoord(mFCoord, mEdges[0].mEdge.mB, mEdges[0].mEdge.mA);
+
+                var fCoord = mFCoord;
+                var aDirect = aCoord - mFCoord;
+                var bDirect = bCoord - mFCoord;
+
+                for (var i = 1; i != mEdges.Count; ++i)
+                {
+                    var rCoord = GetOutCoord(fCoord, mEdges[i].mEdge.mA, mEdges[i].mEdge.mB);
+                    var lCoord = GetOutCoord(fCoord, mEdges[i].mEdge.mB, mEdges[i].mEdge.mA);
+
+                    var aRCross = Math.V2Cross(aDirect, rCoord - fCoord);
+                    var aLCross = Math.V2Cross(aDirect, lCoord - fCoord);
+                    if (aRCross > 0)
+                    {
+                        aCoord = rCoord;
+                        aDirect = aCoord - fCoord;
+                    }
+                    if (aLCross < 0)
+                    {
+                        fCoord = aCoord;
+                        aCoord = rCoord;
+                        bCoord = lCoord;
+                        aDirect = aCoord - fCoord;
+                        bDirect = bCoord - fCoord;
+                        path.Add(aCoord);continue;
+                    }
+
+                    var bRCross = Math.V2Cross(bDirect, rCoord - fCoord);
+                    var bLCross = Math.V2Cross(bDirect, lCoord - fCoord);
+                    if (bLCross < 0)
+                    { 
+                        bCoord = lCoord;
+                        bDirect = bCoord - fCoord;
+                    }
+                    if (bRCross > 0)
+                    {
+                        fCoord = bCoord;
+                        aCoord = rCoord;
+                        bCoord = lCoord;
+                        aDirect = aCoord - fCoord;
+                        bDirect = bCoord - fCoord;
+                        path.Add(bCoord);continue;
+                    }
+                }
+
+                if (0 > Math.V2Cross(aDirect, mTCoord - aCoord)) { path.Add(aCoord); }
+                if (0 < Math.V2Cross(bDirect, mTCoord - bCoord)) { path.Add(bCoord); }
+                path.Add(mTCoord);
+            }
+
+            Vec2 GetOutCoord(Vec2 fCoord, Pile aPile, Pile bPile)
+            {
+                var e0 = (bPile.mOrigin - aPile.mOrigin).normalized;
+                var e1 = (fCoord        - aPile.mOrigin).normalized;
+                return ((e0 + e1) * 0.5f).normalized
+                    * (aPile.mRadius + mRadius)
+                    +  aPile.mOrigin;
             }
 
             float CalcF(Vec2 tCoord, Vec2 fCoord)
@@ -550,17 +588,17 @@ namespace mmc {
                 return meshs.Find(mesh => Math.IsContainsConvex(mesh.mPiles, coord, p => p.mOrigin));
             }
 
-            public List<Edge> GetFindResultEdges()
+            public List<WayPoint> GetFindResultEdges()
             {
                 return mEdges;
             }
 
-            Queue<WayPoint> mOpened = new Queue<WayPoint>();
-            List<WayPoint>  mClosed = new List<WayPoint>();
-            List<Edge>      mEdges  = new List<Edge>();
-            Vec2 mTCoord;
-            Vec2 mFCoord;
-            float mRadius;
+            private Vec2 mTCoord;
+            private Vec2 mFCoord;
+            private float mRadius;
+            private List<WayPoint> mEdges = new List<WayPoint>();
+            private List<WayPoint> mClosed = new List<WayPoint>();
+            private Queue<WayPoint> mOpened = new Queue<WayPoint>();
         }
 
         public void Init(List<Vec2> list)
@@ -585,7 +623,12 @@ namespace mmc {
 
         public List<Edge> GetFindResultEdges()
         {
-            return mQuery.GetFindResultEdges();
+            var result = new List<Edge>();
+            foreach (var wp in mQuery.GetFindResultEdges())
+            {
+                result.Add(wp.mEdge);
+            }
+            return result;
         }
 
         public bool GetFindResultPoint(Vec2 fCoord, Vec2 tCoord, float radius, List<Vec2> path)
